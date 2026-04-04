@@ -124,6 +124,39 @@ const WorkflowStep = ({ num, title, desc, delay }) => {
   );
 };
 
+/* ─── CTA Gradient Background ─── */
+const CTAGradient = () => (
+  <div className="absolute inset-0 overflow-hidden pointer-events-none">
+    <motion.div
+      animate={{
+        scale: [1, 1.2, 1],
+        rotate: [0, 90, 0],
+        x: [0, 50, 0],
+        y: [0, -30, 0],
+      }}
+      transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+      className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-violet-600/30 rounded-full blur-[100px]"
+    />
+    <motion.div
+      animate={{
+        scale: [1, 1.3, 1],
+        rotate: [0, -45, 0],
+        x: [0, -60, 0],
+        y: [0, 40, 0],
+      }}
+      transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
+      className="absolute bottom-[-15%] left-[-5%] w-[400px] h-[400px] bg-indigo-600/25 rounded-full blur-[90px]"
+    />
+    <motion.div
+      animate={{
+        opacity: [0.3, 0.6, 0.3],
+      }}
+      transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+      className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(99,102,241,0.15),transparent_70%)]"
+    />
+  </div>
+);
+
 /* ─── Main Component ─── */
 const Landing = () => {
   const { theme, toggleTheme } = useContext(ThemeContext);
@@ -196,12 +229,12 @@ const Landing = () => {
           </div>
 
           <div className="hidden md:flex items-center gap-3">
-              <>
-                <Link to="/login" className="text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white text-sm font-medium transition-colors">Sign in</Link>
-                <Link to="/login" className="px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-[#060812] text-sm font-bold rounded-lg hover:bg-gray-700 dark:hover:bg-slate-100 transition-colors">
-                  Get Started Free
-                </Link>
-              </>
+            <>
+              <Link to="/login" className="text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white text-sm font-medium transition-colors">Sign in</Link>
+              <Link to="/login" className="px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-[#060812] text-sm font-bold rounded-lg hover:bg-gray-700 dark:hover:bg-slate-100 transition-colors">
+                Get Started Free
+              </Link>
+            </>
             <button onClick={toggleTheme} className="ml-4 p-2 rounded-full bg-gray-200 dark:bg-white/[0.06] hover:bg-gray-300 dark:hover:bg-white/[0.1] transition-colors">
               {theme === 'dark' ? <Sun size={16} className="text-slate-400" /> : <Moon size={16} className="text-slate-600" />}
             </button>
@@ -605,38 +638,69 @@ const Landing = () => {
       </section>
 
       {/* ── CTA ── */}
-      <section className="relative z-10 py-20 px-5">
-        <div className="max-w-3xl mx-auto">
+      <section id="cta" className="relative z-10 py-24 px-5 overflow-hidden">
+        <div className="max-w-5xl mx-auto">
           <Reveal>
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-violet-600 via-indigo-600 to-blue-700 p-[1px] shadow-2xl shadow-violet-500/20">
-              <div className="relative bg-gradient-to-br from-violet-700/80 via-indigo-700/80 to-blue-800/80 rounded-3xl px-8 py-14 text-center backdrop-blur-xl overflow-hidden">
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(139,92,246,0.3),transparent_70%)]" />
-                <div className="absolute top-[-30%] right-[-10%] w-72 h-72 bg-violet-500/20 rounded-full blur-3xl" />
-                <div className="absolute bottom-[-20%] left-[-10%] w-60 h-60 bg-blue-500/20 rounded-full blur-3xl" />
+            <div className="relative group overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-violet-600 via-indigo-600 to-blue-700 p-px shadow-2xl shadow-violet-500/20">
+              <div className="relative bg-[#0b0f20]/90 dark:bg-[#060813]/95 rounded-[2.45rem] px-8 py-16 sm:py-20 text-center backdrop-blur-3xl overflow-hidden">
+                <CTAGradient />
 
                 <div className="relative z-10">
-                  <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-white/10 border border-white/20 mb-6">
-                    <GraduationCap size={26} className="text-white" />
-                  </div>
-                  <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-4 leading-tight">
-                    Your exam season{' '}
-                    <br className="hidden sm:block" />
-                    starts here.
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 dark:bg-white/5 border border-white/20 dark:border-white/10 mb-8 backdrop-blur-md shadow-inner"
+                  >
+                    <GraduationCap size={32} className="text-white drop-shadow-md" />
+                  </motion.div>
+
+                  <h2 className="text-4xl sm:text-5xl md:text-6xl font-black text-white mb-6 leading-[1.1] tracking-tight drop-shadow-sm">
+                    Ready to transform your <br className="hidden sm:block" />
+                    <span className="bg-gradient-to-r from-violet-300 via-indigo-200 to-cyan-200 bg-clip-text text-transparent">
+                      study game?
+                    </span>
                   </h2>
-                  <p className="text-indigo-200 text-base mb-8 max-w-md mx-auto leading-relaxed">
-                    Join thousands of students who save hours every week and walk into exams fully prepared.
+
+                  <p className="text-indigo-200/80 text-lg sm:text-xl mb-10 max-w-xl mx-auto leading-relaxed">
+                    Join 2,000+ students leveraging AI to cut study time in half and ace their university exams.
                   </p>
 
-                  <Link
-                    to={'/login'}
-                    className="group inline-flex items-center gap-2 px-8 py-4 bg-white text-indigo-700 font-black text-sm rounded-xl shadow-xl hover:shadow-2xl transition-shadow hover:bg-indigo-50"
-                  >
-                    {'Get Started — It\'s Free'}
-                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                  </Link>
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <motion.div
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <Link
+                        to={'/login'}
+                        className="group relative inline-flex items-center gap-3 px-10 py-5 bg-white text-indigo-700 font-black text-base rounded-2xl shadow-[0_15px_30px_-5px_rgba(255,255,255,0.2)] hover:shadow-[0_20px_40px_-10px_rgba(255,255,255,0.3)] transition-all overflow-hidden"
+                      >
+                        <span className="relative z-10">Get Started — It's Free</span>
+                        <ArrowRight size={20} className="relative z-10 group-hover:translate-x-1.5 transition-transform" />
+                        <motion.div
+                          className="absolute inset-0 bg-indigo-50"
+                          initial={{ x: '-100%' }}
+                          whileHover={{ x: 0 }}
+                          transition={{ type: "spring", stiffness: 100, damping: 20 }}
+                        />
+                      </Link>
+                    </motion.div>
 
-                  <p className="mt-5 text-indigo-300/60 text-xs">No credit card · Free plan available · Works on mobile</p>
+                    <button className="px-8 py-4 text-white/70 hover:text-white font-bold transition-colors">
+                      Contact Sales
+                    </button>
+                  </div>
+
+                  <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-6 text-indigo-300/40 text-sm">
+                    <span className="flex items-center gap-2"><CheckCircle size={14} /> No credit card required</span>
+                    <span className="flex items-center gap-2"><CheckCircle size={14} /> Unlimited generations</span>
+                    <span className="flex items-center gap-2"><CheckCircle size={14} /> Multi-device sync</span>
+                  </div>
                 </div>
+
+                {/* Additional floating details */}
+                <div className="absolute top-10 left-10 w-24 h-24 border border-white/5 rounded-full blur-sm" />
+                <div className="absolute bottom-10 right-10 w-32 h-32 border border-white/5 rounded-full blur-md" />
               </div>
             </div>
           </Reveal>
