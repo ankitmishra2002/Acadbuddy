@@ -260,7 +260,7 @@ const Landing = () => {
           </div>
 
           <div className="hidden md:flex items-center gap-8 text-sm text-gray-600 dark:text-slate-400 font-medium">
-            {['Features', 'How it Works', 'Community', 'Pricing'].map((item) => (
+            {['Features', 'How it Works', 'Community'].map((item) => (
               <a key={item} href={`#${item.toLowerCase().replace(/ /g, '-')}`} className="hover:text-gray-900 dark:hover:text-white transition-colors">
                 {item}
               </a>
