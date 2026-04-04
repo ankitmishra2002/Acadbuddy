@@ -59,8 +59,25 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Connect to MongoDB
 connectDB();
 
-// Middleware
-//app.use(express.json());
+// Validate required environment variables
+const requiredEnvVars = ['MONGO_URI', 'JWT_SECRET', 'JWT_REFRESH_SECRET'];
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+if (missingEnvVars.length > 0) {
+  console.error(' Missing required environment variables:', missingEnvVars.join(', '));
+  console.error('Please check your .env file in the backend directory.');
+  process.exit(1);
+}
+
+// Rate limiting
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 70,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: "Too many requests, please try again later." },
+  validate: { xForwardedForHeader: false, trustProxy: false }
+});
+app.use('/api/', apiLimiter);
 
 // Default Route
 app.get("/", (req, res) => {
