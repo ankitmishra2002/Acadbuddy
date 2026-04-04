@@ -15,11 +15,27 @@ const PostDetail = () => {
   const [loading, setLoading] = useState(true);
   const [showCloneModal, setShowCloneModal] = useState(false);
   const [subjectId, setSubjectId] = useState('');
+  const [subjects, setSubjects] = useState([]);
 
   useEffect(() => {
     fetchPost();
     fetchComments();
-  }, [id]);
+    if (isAuthenticated) {
+      fetchSubjects();
+    }
+  }, [id, isAuthenticated]);
+
+  const fetchSubjects = async () => {
+    try {
+      const response = await api.get('/subjects');
+      setSubjects(response.data);
+      if (response.data.length > 0) {
+        setSubjectId(response.data[0]._id);
+      }
+    } catch (error) {
+      console.error('Failed to fetch subjects:', error);
+    }
+  };
 
   const fetchPost = async () => {
     try {
@@ -455,13 +471,18 @@ const PostDetail = () => {
             <p className="text-slate-600 dark:text-slate-400 mb-6 font-medium">
               Select a subject to clone this content into your workspace.
             </p>
-            <input
-              type="text"
+            <select
               value={subjectId}
               onChange={(e) => setSubjectId(e.target.value)}
-              placeholder="Enter Subject ID..."
-              className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl mb-6 focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-slate-800 dark:text-slate-100 font-medium placeholder-slate-400"
-            />
+              className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl mb-6 focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-slate-800 dark:text-slate-100 font-medium cursor-pointer"
+            >
+              <option value="" disabled className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">Select a Subject...</option>
+              {subjects.map(subject => (
+                <option key={subject._id} value={subject._id} className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">
+                  {subject.name} {subject.code ? `(${subject.code})` : ''}
+                </option>
+              ))}
+            </select>
             <div className="flex gap-4">
               <button
                 onClick={() => setShowCloneModal(false)}

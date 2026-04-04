@@ -1,20 +1,27 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Eye, Share2, Download, FileText, Presentation, FileCheck, BookOpen, ClipboardList } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { ArrowLeft, Eye, Share2, Download, FileText, Presentation, FileCheck, BookOpen, ClipboardList, Sparkles } from 'lucide-react';
 import api from '../services/api';
 import Layout from '../components/layout/Layout';
 import { downloadAsMarkdown } from '../utils/downloadUtils';
+import useAuthStore from '../store/authStore';
 
 const ContentView = () => {
   const { contentId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [content, setContent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   useEffect(() => {
     fetchContent();
-  }, [contentId]);
+    if (!user) {
+      useAuthStore.getState().fetchUser();
+    }
+  }, [contentId, user]);
 
   const fetchContent = async () => {
     try {
@@ -29,10 +36,45 @@ const ContentView = () => {
   };
 
   const handleShareToCommunity = () => {
-    // Navigate to share modal or community page
-    navigate(`/subjects/${content?.subjectId?._id || content?.subjectId}`, { 
-      state: { shareContentId: contentId } 
-    });
+    setShowShareModal(true);
+  };
+
+  const handleShareSubmit = async (e) => {
+    e.preventDefault();
+    if (!content) return;
+
+    const form = e.target;
+    const formData = new FormData(form);
+    
+    try {
+      const title = formData.get('title') || content.title;
+      const subject = formData.get('subject') || content.subjectId?.name || 'Unknown';
+      const topic = formData.get('topic') || content.topic;
+
+      const postData = new FormData();
+      postData.append('contentId', content._id);
+      postData.append('type', content.type);
+      postData.append('title', title);
+      postData.append('content', JSON.stringify(content.content));
+      
+      const metadata = {
+        subject: subject,
+        topic: topic,
+        semester: user?.semester || '',
+        university: user?.university || '',
+        branch: user?.branch || ''
+      };
+      postData.append('metadata', JSON.stringify(metadata));
+
+      await api.post('/community/posts', postData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      alert('Content shared to community successfully!');
+      setShowShareModal(false);
+    } catch (error) {
+      alert('Failed to share content: ' + (error.response?.data?.message || error.message));
+    }
   };
 
   const getTypeIcon = (type) => {
@@ -282,6 +324,75 @@ const ContentView = () => {
           )}
         </div>
       </div>
+
+      {/* Share to Community Modal */}
+      {showShareModal && content && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-2xl w-full max-w-lg border border-slate-100 dark:border-slate-800 scale-100 animate-in zoom-in-95 duration-200">
+            <h2 className="text-2xl font-bold mb-6 text-slate-800 dark:text-slate-100 flex items-center gap-3">
+              <span className="bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-400 p-2 rounded-xl">
+                <Share2 size={24} />
+              </span>
+              Share to Community
+            </h2>
+            <form onSubmit={handleShareSubmit} className="space-y-5">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
+                  Title <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="title"
+                  required
+                  defaultValue={content.title}
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-slate-800 dark:text-slate-100 font-medium"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
+                  Subject <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="subject"
+                  readOnly
+                  defaultValue={content.subjectId?.name || ''}
+                  className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none text-slate-500 dark:text-slate-400 font-medium cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
+                  Topic <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="topic"
+                  required
+                  defaultValue={content.topic}
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-slate-800 dark:text-slate-100 font-medium"
+                />
+              </div>
+              <div className="flex gap-4 pt-4 mt-8 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowShareModal(false)}
+                  className="flex-1 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold py-3 px-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-emerald-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-emerald-500/30 hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Sparkles size={18} />
+                  Share Publicly
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
     </Layout>
   );
 };

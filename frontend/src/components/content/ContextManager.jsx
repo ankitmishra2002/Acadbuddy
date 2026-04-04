@@ -265,12 +265,12 @@ const ContextManager = ({ subjectId }) => {
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-slate-800 dark:text-slate-100 font-medium cursor-pointer"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-slate-800 dark:text-slate-100 font-medium cursor-pointer"
                 >
-                  <option value="syllabus">Syllabus</option>
-                  <option value="pyq">Past Year Questions</option>
-                  <option value="notes">Notes</option>
-                  <option value="reference">Reference Material</option>
+                  <option value="syllabus" className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">Syllabus</option>
+                  <option value="pyq" className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">Past Year Questions</option>
+                  <option value="notes" className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">Notes</option>
+                  <option value="reference" className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">Reference Material</option>
                 </select>
               </div>
               <div>
