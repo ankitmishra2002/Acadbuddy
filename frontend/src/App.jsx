@@ -13,6 +13,7 @@ import FocusMode from './Pages/FocusMode';
 import ContentView from './Pages/ContentView';
 import Profile from './Pages/Profile';
 import AdminDashboard from './Pages/AdminDashboard';
+import SmartStudies from './Pages/SmartStudies';
 import Layout from './components/layout/Layout';
 import PrivateRoute from './components/common/PrivateRoute';
 import AdminRoute from './components/common/AdminRoute';
@@ -73,6 +74,17 @@ function App() {
             </PrivateRoute>
           }
         />
+        <Route
+          path="/smart-studies"
+          element={
+            <PrivateRoute>
+              <Layout>
+                <SmartStudies />
+              </Layout>
+            </PrivateRoute>
+          }
+        />
+        <Route path="/smart studies" element={<Navigate to="/smart-studies" replace />} />
         <Route
           path="/community"
           element={
