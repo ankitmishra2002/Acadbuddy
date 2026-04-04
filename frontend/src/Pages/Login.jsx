@@ -68,7 +68,7 @@ const Login = () => {
             <div className="p-2 bg-indigo-600 rounded-xl">
               <BookOpen className="text-white" size={22} />
             </div>
-            <span className="text-xl font-bold text-white">Academic Help Buddy</span>
+            <span className="text-xl font-bold text-white">AcadBuddy</span>
           </Link>
         </div>
 
