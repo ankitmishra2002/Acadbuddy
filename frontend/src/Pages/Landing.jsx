@@ -29,6 +29,7 @@ import {
   Moon,
 } from 'lucide-react';
 import Footer from '../components/layout/Footer';
+import Preloader from '../components/layout/Preloader';
 import { useTheme } from '../context/ThemeContext';
 
 const Particle = ({ style }) => (
@@ -183,6 +184,7 @@ const Landing = () => {
   const { isAuthenticated, fetchUser, user } = useAuthStore();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const heroRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
   const heroY = useTransform(scrollYProgress, [0, 1], [0, 120]);
@@ -195,6 +197,13 @@ const Landing = () => {
     } else {
       useAuthStore.setState({ isAuthenticated: false, user: null });
     }
+    
+    // Simulate loading time (adjust as needed)
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 2000);
+    
+    return () => clearTimeout(timer);
   }, [fetchUser]);
 
   useEffect(() => {
@@ -224,6 +233,7 @@ const Landing = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-[#060812] text-gray-800 dark:text-white font-sans overflow-x-hidden transition-colors duration-300">
+      <Preloader isLoading={isLoading} />
 
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute top-[-20%] left-[10%] w-[600px] h-[600px] bg-violet-600/10 dark:bg-violet-600/12 rounded-full blur-[120px]" />
