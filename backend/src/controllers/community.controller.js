@@ -1,8 +1,8 @@
-import CommunityPost from '../../../../models/CommunityPost.js';
-import CommunityVote from '../../../../models/CommunityVote.js';
-import CommunityComment from '../../../../models/CommunityComment.js';
-import GeneratedContent from '../../../../models/GeneratedContent.js';
-import User from '../../../../models/User.js';
+import CommunityPost from '../../../../models/CommunityPost.model.js';
+import CommunityVote from '../../../../models/CommunityVote.model.js';
+import CommunityComment from '../../../../models/CommunityComment.model.js';
+import GeneratedContent from '../../../../models/GeneratedContent.model.js';
+import User from '../../../../models/User.model.js';
 import pdfParse from 'pdf-parse';
 
 export const listCommunityPosts = async (req, res) => {

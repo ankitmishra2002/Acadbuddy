@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import User from '../../../../models/User.js';
+import User from '../../../../models/User.model.js';
 import { generateTokens } from '../utils/generateToken.js';
 
 const formatUser = (user) => ({

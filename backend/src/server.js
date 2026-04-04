@@ -100,7 +100,7 @@ app.get("/", (req, res) => {
 
 // Home Route
 app.get("/home", (req, res) => {
-    res.status(200).json({ message: "Hello World!" });
+    res.status(200).json({ message: "Welcome to the home route!" });
 });
 
 // Health Check Route
