@@ -18,6 +18,7 @@ import sessionRoutes from './routes/sessions.route.js';
 import communityRoutes from './routes/community.route.js';
 import cloudinaryRoutes from './routes/cloudinary.route.js';
 import adminRoutes from './routes/admin.route.js';
+import smartStudiesRoutes from './routes/smartStudies.route.js';
 
 // Import Database Connection
 import connectDB from './config/db.js';
@@ -92,6 +93,7 @@ app.use('/api/sessions', sessionRoutes);
 app.use('/api/community', communityRoutes);
 app.use('/api/cloudinary', cloudinaryRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/smart-studies', smartStudiesRoutes);
 
 // Default Route
 app.get("/", (req, res) => {

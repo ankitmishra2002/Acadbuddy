@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { BookOpen, Palette, Users, Home, ChevronLeft, ChevronRight, X, ShieldAlert } from 'lucide-react';
+import { BookOpen, Palette, Users, Home, ChevronLeft, ChevronRight, X, ShieldAlert, Sparkles } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import useAuthStore from '../../store/authStore';
 
@@ -14,6 +14,7 @@ const Sidebar = ({ onClose, isCollapsed, onToggleCollapse }) => {
     { path: '/dashboard', icon: Home, label: 'Dashboard' },
     { path: '/subjects', icon: BookOpen, label: 'Subjects' },
     { path: '/styles', icon: Palette, label: 'Answer Styles' },
+    { path: '/smart-studies', icon: Sparkles, label: 'Smart Studies' },
     { path: '/community', icon: Users, label: 'Community' }
   ];
 
