@@ -81,7 +81,7 @@ const Landing = () => {
                 <BookOpen className="text-white" size={24} />
               </div>
               <span className="text-xl sm:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-900 to-slate-800">
-                Academic Help Buddy
+                AcadBuddy
               </span>
             </Link>
             <div className="flex items-center gap-3 sm:gap-5">
