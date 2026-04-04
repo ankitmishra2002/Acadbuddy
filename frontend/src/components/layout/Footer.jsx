@@ -12,7 +12,7 @@ const Footer = () => {
           <div className="col-span-1 md:col-span-1">
             <div className="flex items-center mb-4">
               <BookOpen className="h-6 w-6 text-blue-400 mr-2" />
-              <span className="text-xl font-bold">Academic Help Buddy</span>
+              <span className="text-xl font-bold">AcadBuddy</span>
             </div>
             <p className="text-gray-300 mb-4 text-sm">
               AI-powered study companion for university students. Generate notes, create exam blueprints, and share content with your community.
