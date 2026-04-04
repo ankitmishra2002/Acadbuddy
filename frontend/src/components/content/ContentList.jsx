@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { FileText, Eye, Trash2, Share2, Sparkles } from 'lucide-react';
+import { FileText, Eye, Trash2, Share2, Sparkles, Download } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import { downloadAsMarkdown } from '../../utils/downloadUtils';
 
 const ContentList = ({ subjectId }) => {
   const [contents, setContents] = useState([]);
@@ -158,6 +159,16 @@ const ContentList = ({ subjectId }) => {
                   <Eye size={18} /> View
                 </Link>
                 <div className="flex gap-1" >
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      downloadAsMarkdown(content.content, content.title);
+                    }}
+                    className="text-amber-600 dark:text-amber-500 hover:text-amber-700 dark:hover:text-amber-400 p-2 rounded-xl hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
+                    title="Download Markdown"
+                  >
+                    <Download size={18} />
+                  </button>
                   <button
                     onClick={() => handleShareToCommunity(content)}
                     className="text-emerald-600 dark:text-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-400 p-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"

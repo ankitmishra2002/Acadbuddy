@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Eye, Share2, Download, FileText, Presentation, FileCheck, BookOpen, ClipboardList } from 'lucide-react';
 import api from '../services/api';
 import Layout from '../components/layout/Layout';
+import { downloadAsMarkdown } from '../utils/downloadUtils';
 
 const ContentView = () => {
   const { contentId } = useParams();
@@ -133,6 +134,13 @@ const ContentView = () => {
             </div>
 
             <div className="flex gap-3">
+              <button
+                onClick={() => downloadAsMarkdown(content.content, content.title)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
+              >
+                <Download size={18} />
+                Download Report
+              </button>
               <Link
                 to={`/focus/${content.type}/${content._id}`}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"

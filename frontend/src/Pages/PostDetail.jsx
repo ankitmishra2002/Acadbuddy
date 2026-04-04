@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ThumbsUp, ThumbsDown, Copy, Eye, FileText, Download } from 'lucide-react';
 import api from '../services/api';
 import useAuthStore from '../store/authStore';
+import { downloadAsMarkdown } from '../utils/downloadUtils';
 
 const PostDetail = () => {
   const { id } = useParams();
@@ -150,10 +151,17 @@ const PostDetail = () => {
               <ThumbsDown size={18} />
               {post.downvotes}
             </button>
+            <button
+              onClick={() => downloadAsMarkdown(post.content, post.title)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-amber-600 dark:bg-amber-600 text-white rounded-xl hover:bg-amber-700 font-bold hover:shadow-lg hover:shadow-amber-500/30 border border-transparent transition-all ml-auto sm:ml-0"
+            >
+              <Download size={18} />
+              <span className="hidden sm:inline">Download</span>
+            </button>
             {isAuthenticated && (
               <button
                 onClick={() => setShowCloneModal(true)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 dark:bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-bold hover:shadow-lg hover:shadow-blue-500/30 border border-transparent transition-all ml-auto sm:ml-0"
+                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 dark:bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-bold hover:shadow-lg hover:shadow-blue-500/30 border border-transparent transition-all"
               >
                 <Copy size={18} />
                 <span className="hidden sm:inline">Clone to Workspace</span>
