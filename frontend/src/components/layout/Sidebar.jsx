@@ -1,22 +1,26 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { useNavigate, NavLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   LayoutDashboard, BookOpen, Users, Brain, 
   Target, Settings, LogOut, ChevronLeft, 
-  ChevronRight, Sparkles, GraduationCap 
+  ChevronRight, Sparkles, GraduationCap,
+  Sun, Moon
 } from 'lucide-react';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../../context/ThemeContext';
+import useAuthStore from '../../store/authStore';
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
+  const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
+  const { user, logout } = useAuthStore();
 
   const navItems = [
-    { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
+    { name: 'Home', icon: LayoutDashboard, path: '/dashboard' },
     { name: 'Subjects', icon: BookOpen, path: '/subjects' },
     { name: 'Community', icon: Users, path: '/community' },
     { name: 'Focus Mode', icon: Target, path: '/focus' },
-    { name: 'AI Workspace', icon: Brain, path: '/ai-workspace' },
+    { name: 'AI Study Lab', icon: Brain, path: '/ai-workspace' },
   ];
 
   return (
@@ -50,7 +54,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
             className={({ isActive }) => `
               group flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200
               ${isActive 
-                ? 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 font-semibold' 
+                ? 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 font-bold' 
                 : 'text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-white/[0.04] hover:text-gray-900 dark:hover:text-white'}
             `}
           >
@@ -59,16 +63,31 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
               <motion.span 
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="text-sm tracking-wide"
+                className="text-sm font-bold tracking-wide"
               >
                 {item.name}
               </motion.span>
             )}
-            {isOpen && item.name === 'AI Workspace' && (
+            {isOpen && item.name === 'AI Study Lab' && (
               <Sparkles size={12} className="text-amber-400 ml-auto animate-pulse" />
             )}
           </NavLink>
         ))}
+
+        {isOpen && (
+          <div className="mt-8 px-3 space-y-4">
+             <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-3">
+                Quick Action
+             </div>
+             <button 
+                onClick={() => navigate('/subjects')}
+                className="w-full group flex items-center gap-3 px-4 py-4 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-700 text-white shadow-lg shadow-violet-500/20 hover:scale-[1.02] active:scale-95 transition-all text-xs font-black uppercase tracking-wider"
+             >
+                <Sparkles size={16} />
+                Generate Notes
+             </button>
+          </div>
+        )}
       </nav>
 
       {/* ── Footer ── */}
@@ -88,17 +107,28 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
             ${isActive ? 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400' : 'text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-white/[0.04]'}
           `}
         >
-          <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-violet-400 to-indigo-500 flex items-center justify-center text-[10px] text-white font-bold">
-            JD
+          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-violet-500 to-indigo-600 flex items-center justify-center text-[10px] text-white font-black uppercase">
+            {user?.name?.charAt(0) || 'U'}
           </div>
-          {isOpen && <span className="text-sm font-medium">John Doe</span>}
+          {isOpen && <span className="text-sm font-bold truncate">{user?.name}</span>}
         </NavLink>
 
         <button
-          className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all font-medium"
+          onClick={logout}
+          className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all font-bold"
         >
           <LogOut size={20} />
-          {isOpen && <span className="text-sm">Sign Out</span>}
+          {isOpen && <span className="text-sm uppercase tracking-widest text-[10px]">Sign Out</span>}
+        </button>
+
+        <button
+          onClick={toggleTheme}
+          className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-all font-bold"
+        >
+          {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+          {isOpen && <span className="text-sm uppercase tracking-widest text-[10px]">
+            {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+          </span>}
         </button>
       </div>
     </motion.aside>

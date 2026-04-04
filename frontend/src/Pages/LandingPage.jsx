@@ -307,13 +307,13 @@ const Landing = () => {
               <ArrowRight size={16} className="relative z-10 group-hover:translate-x-1 transition-transform" />
               <div className="absolute inset-0 bg-gradient-to-r from-violet-100 to-indigo-100 opacity-0 group-hover:opacity-100 transition-opacity" />
             </Link>
-            <a
-              href="#features"
+            <Link
+              to="/login"
               className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-gray-200/[0.6] dark:bg-white/[0.06] border border-gray-300 dark:border-white/[0.1] text-gray-700 dark:text-slate-300 font-semibold text-sm rounded-xl hover:bg-gray-200 dark:hover:bg-white/[0.1] transition-colors"
             >
               <Play size={14} className="fill-current" />
               See how it works
-            </a>
+            </Link>
           </motion.div>
 
           {/* Hero UI Mock */}
