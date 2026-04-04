@@ -1,6 +1,6 @@
 # Frontend
 
-The frontend is a single-page application that provides the user interface for the Academic Help Buddy academic assistant platform. It enables students to manage subjects, generate AI-powered study content, prepare for exams, engage with a peer community, and track their learning progress.
+The frontend is a single-page application that provides the user interface for the AcadBuddy academic assistant platform. It enables students to manage subjects, generate AI-powered study content, prepare for exams, engage with a peer community, and track their learning progress.
 
 ---
 
