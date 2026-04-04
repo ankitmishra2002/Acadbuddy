@@ -7,7 +7,7 @@ import rateLimit from "express-rate-limit";
 
 // Import Routes
 import authRoutes from './routes/auth.route.js';
-import userRoutes from './routes/users.route.js';
+import userRoutes from './routes/user.route.js';
 import subjectRoutes from './routes/subjects.route.js';
 import contextRoutes from './routes/context.route.js';
 import styleRoutes from './routes/styles.route.js';
@@ -107,6 +107,41 @@ app.get("/home", (req, res) => {
 app.get("/health", (req, res) => {
     res.status(200).json({ status: "OK", message: 'Acad Buddy backend is healthy!' });
 });
+
+// AI API key test endpoint with detailed diagnostics
+app.get('/api/test-ai-key', async (req, res) => {
+    try {
+        const { testAPIKey } = await import('./services/aiOrchestrator.js');
+        const result = await testAPIKey();
+
+        // Log diagnostics for debugging
+        if (!result.valid && result.diagnostics) {
+            console.log('\n API Key Diagnostics:');
+            console.log(`   Length: ${result.diagnostics.keyLength} characters`);
+            console.log(`   Starts with: ${result.diagnostics.keyPrefix}...`);
+            console.log(`   Ends with: ...${result.diagnostics.keySuffix}`);
+            console.log(`   Has spaces: ${result.diagnostics.hasSpaces}`);
+            console.log(`   Has quotes: ${result.diagnostics.hasQuotes}`);
+            console.log(`   Valid prefix: ${result.diagnostics.startsWithCorrectPrefix}`);
+            if (result.statusCode) {
+                console.log(`   HTTP Status: ${result.statusCode}`);
+            }
+            if (result.detailedError) {
+                console.log(`   API Error: ${result.detailedError}`);
+            }
+            console.log('');
+        }
+
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({
+            valid: false,
+            error: error.message,
+            diagnostics: { error: 'Failed to test API key' }
+        });
+    }
+});
+
 
 // Multer error handling (file type / size rejections)
 app.use((err, req, res, next) => {
