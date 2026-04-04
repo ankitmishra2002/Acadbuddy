@@ -1,8 +1,8 @@
-import CommunityPost from '../../../../models/CommunityPost.model.js';
-import CommunityVote from '../../../../models/CommunityVote.model.js';
-import CommunityComment from '../../../../models/CommunityComment.model.js';
-import GeneratedContent from '../../../../models/GeneratedContent.model.js';
-import User from '../../../../models/User.model.js';
+import CommunityPost from '../models/CommunityPost.model.js';
+import CommunityVote from '../models/CommunityVote.model.js';
+import CommunityComment from '../models/CommunityComment.model.js';
+import GeneratedContent from '../models/GeneratedContent.model.js';
+import User from '../models/User.model.js';
 import pdfParse from 'pdf-parse';
 
 export const listCommunityPosts = async (req, res) => {
@@ -54,18 +54,18 @@ const extractFileContent = async (file) => {
   if (!file) {
     return null;
   }
-  
+
   try {
     if (file.mimetype === 'application/pdf') {
       const pdfData = await pdfParse(file.buffer);
       return pdfData.text;
-    } else if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
-               file.mimetype === 'application/msword') {
+    } else if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      file.mimetype === 'application/msword') {
       // For DOCX files, we'll return a placeholder message
       // In production, you'd want to use a library like 'mammoth' or 'docx'
       return '[DOCX file content - text extraction not implemented]';
     } else if (file.mimetype === 'application/vnd.openxmlformats-officedocument.presentationml.presentation' ||
-               file.mimetype === 'application/vnd.ms-powerpoint') {
+      file.mimetype === 'application/vnd.ms-powerpoint') {
       // For PPT files
       return '[PPT file content - text extraction not implemented]';
     } else {
@@ -82,10 +82,10 @@ export const createCommunityPost = async (req, res) => {
   try {
     const { contentId, type, title, content, metadata } = req.body;
     const user = await User.findById(req.userId);
-    
+
     let postContent = content;
     let postType = type;
-    
+
     // If file is uploaded, extract content
     if (req.file) {
       const extractedContent = await extractFileContent(req.file);
@@ -103,10 +103,10 @@ export const createCommunityPost = async (req, res) => {
         }
       }
     }
-    
+
     // Validate required metadata fields
     const metadataObj = typeof metadata === 'string' ? JSON.parse(metadata) : metadata;
-    
+
     if (!metadataObj?.subject) {
       return res.status(400).json({ message: 'Subject is required' });
     }

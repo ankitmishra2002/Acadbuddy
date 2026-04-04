@@ -1,9 +1,9 @@
-import ExamPlan from '../../../../models/ExamPlan.model.js';
-import GeneratedContent from '../../../../models/GeneratedContent.model.js';
-import Context from '../../../../models/Context.model.js';
-import User from '../../../../models/User.model.js';
-import AnswerStyle from '../../../../models/AnswerStyle.model.js';
-import Subject from '../../../../models/Subject.model.js';
+import ExamPlan from '../models/ExamPlan.model.js';
+import GeneratedContent from '../models/GeneratedContent.model.js';
+import Context from '../models/Context.model.js';
+import User from '../models/User.model.js';
+import AnswerStyle from '../models/AnswerStyle.model.js';
+import Subject from '../models/Subject.model.js';
 import * as aiOrchestrator from '../services/aiOrchestrator.js';
 
 const buildContextData = (contexts) => ({

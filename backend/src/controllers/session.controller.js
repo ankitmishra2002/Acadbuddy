@@ -1,4 +1,4 @@
-import Session from '../../../../models/Session.model.js';
+import Session from '../models/Session.model.js';
 
 export const startSession = async (req, res) => {
   try {

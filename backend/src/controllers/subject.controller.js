@@ -1,5 +1,5 @@
-import Subject from '../../../../models/Subject.model.js';
-import User from '../../../../models/User.model.js';
+import Subject from '../models/Subject.model.js';
+import User from '../models/User.model.js';
 
 export const getSubjects = async (req, res) => {
   try {

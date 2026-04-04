@@ -5,7 +5,7 @@ import {
   deleteFile,
   getConfig,
   upload
-} from '../../../../controllers/cloudinary.controller.js';
+} from '../controllers/cloudinary.controller.js';
 import { authenticateAccessToken } from '../middleware/auth.middleware.js';
 
 const router = express.Router();

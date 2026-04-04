@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import User from '../../../../models/User.model.js';
+import User from '../models/User.model.js';
 import { generateTokens } from '../utils/generateToken.js';
 
 const formatUser = (user) => ({
@@ -20,13 +20,13 @@ const issueTokens = async (userId, isNewUser = false) => {
       throw new Error('JWT secrets are not configured. Please check your .env file.');
     }
     const tokens = generateTokens({ userId });
-    
+
     // Only perform an atomic update if it's an existing user.
     // New users will save their token during their initial creation to prevent double-writes.
     if (!isNewUser) {
       await User.updateOne({ _id: userId }, { $set: { refreshToken: tokens.refreshToken } });
     }
-    
+
     return tokens;
   } catch (error) {
     console.error('Token generation error:', error);
@@ -44,7 +44,7 @@ export const registerUser = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    
+
     // Create new user object first
     const user = new User({
       email,

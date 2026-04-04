@@ -1,5 +1,5 @@
-import AnswerStyle from '../../../../models/AnswerStyle.model.js';
-import User from '../../../../models/User.model.js';
+import AnswerStyle from '../models/AnswerStyle.model.js';
+import User from '../models/User.model.js';
 
 const DEFAULT_STYLES = [
   {

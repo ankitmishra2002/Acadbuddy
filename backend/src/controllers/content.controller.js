@@ -1,8 +1,8 @@
-import GeneratedContent from '../../../../models/GeneratedContent.model.js';
-import Context from '../../../../models/Context.model.js';
-import User from '../../../../models/User.model.js';
-import AnswerStyle from '../../../../models/AnswerStyle.model.js';
-import Subject from '../../../../models/Subject.model.js';
+import GeneratedContent from '../models/GeneratedContent.model.js';
+import Context from '../models/Context.model.js';
+import User from '../models/User.model.js';
+import AnswerStyle from '../models/AnswerStyle.model.js';
+import Subject from '../models/Subject.model.js';
 import * as aiOrchestrator from '../services/aiOrchestrator.js';
 
 const buildContextData = (contexts) => ({
@@ -30,14 +30,14 @@ const getUserSubjectAndStyle = async (userId, subjectId) => {
   if (!subject) {
     throw createError('Subject not found', 404);
   }
-  
+
   let styleProfile = null;
-  
+
   // Check if user has an active style profile
   if (user.activeStyleProfileId) {
     styleProfile = await AnswerStyle.findById(user.activeStyleProfileId);
   }
-  
+
   // If no active style profile, check if user has any style profiles
   if (!styleProfile) {
     const userStyles = await AnswerStyle.find({ userId });
@@ -62,7 +62,7 @@ const getUserSubjectAndStyle = async (userId, subjectId) => {
       await user.save();
     }
   }
-  
+
   return { user, subject, styleProfile };
 };
 
@@ -143,30 +143,30 @@ export const generateNotesContent = async (req, res) => {
   } catch (error) {
     // Provide more helpful error messages
     const errorMessage = error.message || 'Unknown error occurred';
-    
+
     if (errorMessage.includes('API key') || errorMessage.includes('not configured')) {
-      return res.status(500).json({ 
-        message: 'AI service is not configured. Please set OPENROUTER_API_KEY in your backend/.env file. See SETUP_AI.md for instructions.' 
+      return res.status(500).json({
+        message: 'AI service is not configured. Please set OPENROUTER_API_KEY in your backend/.env file. See SETUP_AI.md for instructions.'
       });
     }
     if (errorMessage.includes('authentication failed') || errorMessage.includes('401')) {
-      return res.status(500).json({ 
-        message: 'AI service authentication failed. Please check your OpenRouter API key in the backend/.env file. The key may be invalid or expired.' 
+      return res.status(500).json({
+        message: 'AI service authentication failed. Please check your OpenRouter API key in the backend/.env file. The key may be invalid or expired.'
       });
     }
     if (errorMessage.includes('rate limit') || errorMessage.includes('429') || errorMessage.includes('Daily rate limit')) {
-      return res.status(429).json({ 
-        message: errorMessage.includes('Daily rate limit') || errorMessage.includes('free-models-per-day') 
-          ? errorMessage 
-          : 'AI service rate limit exceeded. Please try again in a few minutes or add credits to your OpenRouter account at https://openrouter.ai/' 
+      return res.status(429).json({
+        message: errorMessage.includes('Daily rate limit') || errorMessage.includes('free-models-per-day')
+          ? errorMessage
+          : 'AI service rate limit exceeded. Please try again in a few minutes or add credits to your OpenRouter account at https://openrouter.ai/'
       });
     }
     if (errorMessage.includes('credits') || errorMessage.includes('402')) {
-      return res.status(402).json({ 
-        message: 'Insufficient credits in your OpenRouter account. Please add credits at https://openrouter.ai/' 
+      return res.status(402).json({
+        message: 'Insufficient credits in your OpenRouter account. Please add credits at https://openrouter.ai/'
       });
     }
-    
+
     // Log the full error for debugging
     console.error('Content generation error:', errorMessage);
     handleControllerError(res, error);
@@ -228,30 +228,30 @@ export const generateReportContent = async (req, res) => {
   } catch (error) {
     // Provide more helpful error messages
     const errorMessage = error.message || 'Unknown error occurred';
-    
+
     if (errorMessage.includes('API key') || errorMessage.includes('not configured')) {
-      return res.status(500).json({ 
-        message: 'AI service is not configured. Please set OPENROUTER_API_KEY in your backend/.env file. See SETUP_AI.md for instructions.' 
+      return res.status(500).json({
+        message: 'AI service is not configured. Please set OPENROUTER_API_KEY in your backend/.env file. See SETUP_AI.md for instructions.'
       });
     }
     if (errorMessage.includes('authentication failed') || errorMessage.includes('401')) {
-      return res.status(500).json({ 
-        message: 'AI service authentication failed. Please check your OpenRouter API key in the backend/.env file. The key may be invalid or expired.' 
+      return res.status(500).json({
+        message: 'AI service authentication failed. Please check your OpenRouter API key in the backend/.env file. The key may be invalid or expired.'
       });
     }
     if (errorMessage.includes('rate limit') || errorMessage.includes('429') || errorMessage.includes('Daily rate limit')) {
-      return res.status(429).json({ 
-        message: errorMessage.includes('Daily rate limit') || errorMessage.includes('free-models-per-day') 
-          ? errorMessage 
-          : 'AI service rate limit exceeded. Please try again in a few minutes or add credits to your OpenRouter account at https://openrouter.ai/' 
+      return res.status(429).json({
+        message: errorMessage.includes('Daily rate limit') || errorMessage.includes('free-models-per-day')
+          ? errorMessage
+          : 'AI service rate limit exceeded. Please try again in a few minutes or add credits to your OpenRouter account at https://openrouter.ai/'
       });
     }
     if (errorMessage.includes('credits') || errorMessage.includes('402')) {
-      return res.status(402).json({ 
-        message: 'Insufficient credits in your OpenRouter account. Please add credits at https://openrouter.ai/' 
+      return res.status(402).json({
+        message: 'Insufficient credits in your OpenRouter account. Please add credits at https://openrouter.ai/'
       });
     }
-    
+
     // Log the full error for debugging
     console.error('Content generation error:', errorMessage);
     handleControllerError(res, error);
@@ -306,30 +306,30 @@ export const generatePPTContent = async (req, res) => {
   } catch (error) {
     // Provide more helpful error messages
     const errorMessage = error.message || 'Unknown error occurred';
-    
+
     if (errorMessage.includes('API key') || errorMessage.includes('not configured')) {
-      return res.status(500).json({ 
-        message: 'AI service is not configured. Please set OPENROUTER_API_KEY in your backend/.env file. See SETUP_AI.md for instructions.' 
+      return res.status(500).json({
+        message: 'AI service is not configured. Please set OPENROUTER_API_KEY in your backend/.env file. See SETUP_AI.md for instructions.'
       });
     }
     if (errorMessage.includes('authentication failed') || errorMessage.includes('401')) {
-      return res.status(500).json({ 
-        message: 'AI service authentication failed. Please check your OpenRouter API key in the backend/.env file. The key may be invalid or expired.' 
+      return res.status(500).json({
+        message: 'AI service authentication failed. Please check your OpenRouter API key in the backend/.env file. The key may be invalid or expired.'
       });
     }
     if (errorMessage.includes('rate limit') || errorMessage.includes('429') || errorMessage.includes('Daily rate limit')) {
-      return res.status(429).json({ 
-        message: errorMessage.includes('Daily rate limit') || errorMessage.includes('free-models-per-day') 
-          ? errorMessage 
-          : 'AI service rate limit exceeded. Please try again in a few minutes or add credits to your OpenRouter account at https://openrouter.ai/' 
+      return res.status(429).json({
+        message: errorMessage.includes('Daily rate limit') || errorMessage.includes('free-models-per-day')
+          ? errorMessage
+          : 'AI service rate limit exceeded. Please try again in a few minutes or add credits to your OpenRouter account at https://openrouter.ai/'
       });
     }
     if (errorMessage.includes('credits') || errorMessage.includes('402')) {
-      return res.status(402).json({ 
-        message: 'Insufficient credits in your OpenRouter account. Please add credits at https://openrouter.ai/' 
+      return res.status(402).json({
+        message: 'Insufficient credits in your OpenRouter account. Please add credits at https://openrouter.ai/'
       });
     }
-    
+
     // Log the full error for debugging
     console.error('Content generation error:', errorMessage);
     handleControllerError(res, error);

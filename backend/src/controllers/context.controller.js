@@ -1,5 +1,5 @@
 import pdfParse from 'pdf-parse';
-import Context from '../../../../models/Context.model.js';
+import Context from '../models/Context.model.js';
 
 export const getContextsBySubject = async (req, res) => {
   try {
