@@ -1,18 +1,18 @@
 import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import useAuthStore from './store/authStore';
-import Login from './pages/Login';
-import Landing from './pages/Landing';
-import Dashboard from './pages/Dashboard';
-import Subjects from './pages/Subjects';
-import SubjectWorkspace from './pages/SubjectWorkspace';
-import Styles from './pages/Styles';
-import Community from './pages/Community';
-import PostDetail from './pages/PostDetail';
-import FocusMode from './pages/FocusMode';
-import ContentView from './pages/ContentView';
-import Profile from './pages/Profile';
-import AdminDashboard from './pages/AdminDashboard';
+import Login from './Pages/Login';
+import Landing from './Pages/Landing';
+import Dashboard from './Pages/Dashboard';
+import Subjects from './Pages/Subjects';
+import SubjectWorkspace from './Pages/SubjectWorkspace';
+import Styles from './Pages/Styles';
+import Community from './Pages/Community';
+import PostDetail from './Pages/PostDetail';
+import FocusMode from './Pages/FocusMode';
+import ContentView from './Pages/ContentView';
+import Profile from './Pages/Profile';
+import AdminDashboard from './Pages/AdminDashboard';
 import Layout from './components/layout/Layout';
 import PrivateRoute from './components/common/PrivateRoute';
 import AdminRoute from './components/common/AdminRoute';
@@ -31,6 +31,8 @@ function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
+
+
         <Route
           path="/dashboard"
           element={
