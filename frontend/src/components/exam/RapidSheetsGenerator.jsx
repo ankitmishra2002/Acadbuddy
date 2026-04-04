@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { FileText, Sparkles } from 'lucide-react';
 import api from '../../services/api';
-import GenerationOverlay from '../ui/GenerationOverlay';
 
 const RapidSheetsGenerator = ({ subjectId }) => {
   const [formData, setFormData] = useState({
@@ -9,13 +8,6 @@ const RapidSheetsGenerator = ({ subjectId }) => {
   });
   const [loading, setLoading] = useState(false);
   const [generatedContent, setGeneratedContent] = useState(null);
-  const outputRef = useRef(null);
-
-  useEffect(() => {
-    if (generatedContent && outputRef.current) {
-      outputRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, [generatedContent]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -35,10 +27,10 @@ const RapidSheetsGenerator = ({ subjectId }) => {
   };
 
   return (
-    <div className="relative space-y-8">
+    <div className="space-y-8">
       <h3 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">Rapid Revision Sheets</h3>
 
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900/80 p-6 sm:p-8 rounded-4xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 dark:border-slate-800 backdrop-blur-xl space-y-6">
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900/80 p-6 sm:p-8 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 dark:border-slate-800 backdrop-blur-xl space-y-6">
         <div>
           <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
             Topics <span className="text-slate-400 font-normal ml-1">(comma-separated, leave empty for all topics)</span>
@@ -62,7 +54,7 @@ const RapidSheetsGenerator = ({ subjectId }) => {
       </form>
 
       {generatedContent && (
-        <div ref={outputRef} className="bg-purple-50 dark:bg-slate-950/70 p-6 sm:p-8 rounded-4xl border border-purple-100 dark:border-purple-800/60 shadow-sm transition-all focus-within:ring-2 focus-within:ring-purple-500">
+        <div className="bg-purple-50 dark:bg-purple-900/20 p-6 sm:p-8 rounded-[2rem] border border-purple-100 dark:border-purple-800/50 shadow-sm transition-all focus-within:ring-2 focus-within:ring-purple-500">
           <h4 className="text-2xl font-extrabold mb-8 text-purple-800 dark:text-purple-300 tracking-tight flex items-center gap-3">
             <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
             {generatedContent.title}
@@ -111,13 +103,6 @@ const RapidSheetsGenerator = ({ subjectId }) => {
           )}
         </div>
       )}
-
-      <GenerationOverlay
-        open={loading}
-        title="Generating revision sheets"
-        description="The backend is condensing topics into a fast revision format."
-        accent="amber"
-      />
     </div>
   );
 };

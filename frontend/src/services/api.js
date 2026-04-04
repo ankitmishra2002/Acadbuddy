@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:7000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -9,44 +9,68 @@ const api = axios.create({
   }
 });
 
-// Skip Clerk logic
-
-// Attach JWT token to every request from localStorage
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  const accessToken = localStorage.getItem('accessToken');
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
   }
-  // Don't set Content-Type for FormData — let browser set it with boundary
+  // Don't set Content-Type for FormData, let the browser set it with boundary
   if (config.data instanceof FormData) {
     delete config.headers['Content-Type'];
   }
   return config;
 });
 
-// Response interceptor — handle 401 Unauthorized
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const status = error.response?.status;
-    const url = error.config?.url || '';
+    // Log error for debugging
+    if (error.response) {
+      console.error('API Error:', {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data,
+        url: error.config?.url
+      });
+    } else if (error.request) {
+      console.error('Network Error:', 'No response received from server. Is the backend running?');
+    } else {
+      console.error('Request Error:', error.message);
+    }
 
-    if (status === 401 && !url.includes('/auth/login')) {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      if (!window.location.pathname.includes('/login')) {
+    const originalRequest = error.config || {};
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      localStorage.getItem('refreshToken')
+    ) {
+      originalRequest._retry = true;
+      try {
+        const refreshResponse = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+          refreshToken: localStorage.getItem('refreshToken')
+        });
+
+        const { accessToken, refreshToken } = refreshResponse.data;
+        localStorage.setItem('accessToken', accessToken);
+        localStorage.setItem('refreshToken', refreshToken);
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
         window.location.href = '/login';
       }
     }
 
-    if (error.response) {
-      console.error('API Error:', { status, url, data: error.response.data });
-    } else {
-      console.error('Network/Request Error:', error.message);
+    if (error.response?.status === 401) {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      window.location.href = '/login';
     }
+
     return Promise.reject(error);
   }
 );
 
-
 export default api;
+

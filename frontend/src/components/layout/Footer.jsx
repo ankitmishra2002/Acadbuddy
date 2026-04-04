@@ -1,77 +1,140 @@
-import React from 'react';
-import { Github, Twitter, Linkedin, Facebook, Mail, GraduationCap } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { BookOpen, Github, Twitter, Linkedin, Heart, Code, Users, GraduationCap, FileText, Palette } from 'lucide-react';
 
 const Footer = () => {
+  const currentYear = new Date().getFullYear();
+
   return (
-    <footer className="relative bg-slate-900 text-slate-300 pt-20 pb-10 overflow-hidden">
-      {/* Decorative background elements */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none"></div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
-          {/* Brand section */}
-          <div className="space-y-6">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-blue-600 rounded-lg">
-                <GraduationCap className="text-white w-6 h-6" />
-              </div>
-              <span className="text-2xl font-bold text-white tracking-tight">Acadbuddy</span>
+    <footer className="bg-gradient-to-r from-gray-800 to-gray-900 text-white">
+      <div className="max-w-7xl mx-auto px-4 py-8 sm:py-12">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          {/* Logo and Description */}
+          <div className="col-span-1 md:col-span-1">
+            <div className="flex items-center mb-4">
+              <BookOpen className="h-6 w-6 text-blue-400 mr-2" />
+              <span className="text-xl font-bold">Academic Help Buddy</span>
             </div>
-            <p className="text-slate-400 max-w-xs leading-relaxed">
-              Empowering students with AI-driven study tools and a collaborative community to excel in their academic journey.
+            <p className="text-gray-300 mb-4 text-sm">
+              AI-powered study companion for university students. Generate notes, create exam blueprints, and share content with your community.
             </p>
-            <div className="flex gap-4">
-              <a href="#" className="p-2 hover:bg-slate-800 rounded-full transition-colors"><Twitter size={20} /></a>
-              <a href="#" className="p-2 hover:bg-slate-800 rounded-full transition-colors"><Github size={20} /></a>
-              <a href="#" className="p-2 hover:bg-slate-800 rounded-full transition-colors"><Linkedin size={20} /></a>
+            <div className="flex space-x-4">
+              <a 
+                href="https://github.com/bhutuklearning/AI-Academic-Assistant" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-gray-400 hover:text-white transition-colors"
+                aria-label="GitHub"
+              >
+                <Github className="h-6 w-6" />
+              </a>
+              <a 
+                href="https://x.com/Amritanshutwt" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-gray-400 hover:text-white transition-colors"
+                aria-label="Twitter"
+              >
+                <Twitter className="h-6 w-6" />
+              </a>
+              <a 
+                href="https://www.linkedin.com/in/avoy-sasmal/" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-gray-400 hover:text-white transition-colors"
+                aria-label="LinkedIn"
+              >
+                <Linkedin className="h-6 w-6" />
+              </a>
             </div>
           </div>
 
-          {/* Productivity */}
-          <div>
-            <h4 className="text-white font-bold mb-6 text-lg">Productivity</h4>
-            <ul className="space-y-4">
-              <li><a href="#" className="hover:text-blue-400 transition-colors">Study Planner</a></li>
-              <li><a href="#" className="hover:text-blue-400 transition-colors">AI Notes</a></li>
-              <li><a href="#" className="hover:text-blue-400 transition-colors">Quiz Master</a></li>
-              <li><a href="#" className="hover:text-blue-400 transition-colors">Focus Mode</a></li>
+          {/* Quick Links */}
+          <div className="col-span-1">
+            <h3 className="text-lg font-semibold mb-4 text-blue-400 flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Quick Links
+            </h3>
+            <ul className="space-y-2">
+              <li>
+                <Link to="/" className="text-gray-300 hover:text-white transition-colors text-sm">Home</Link>
+              </li>
+              <li>
+                <Link to="/dashboard" className="text-gray-300 hover:text-white transition-colors text-sm">Dashboard</Link>
+              </li>
+              <li>
+                <Link to="/subjects" className="text-gray-300 hover:text-white transition-colors text-sm">Subjects</Link>
+              </li>
+              <li>
+                <Link to="/community" className="text-gray-300 hover:text-white transition-colors text-sm">Community</Link>
+              </li>
+              <li>
+                <Link to="/login" className="text-gray-300 hover:text-white transition-colors text-sm">Login</Link>
+              </li>
             </ul>
           </div>
 
-          {/* Resources */}
-          <div>
-            <h4 className="text-white font-bold mb-6 text-lg">Resources</h4>
-            <ul className="space-y-4">
-              <li><a href="#" className="hover:text-blue-400 transition-colors">Community Feed</a></li>
-              <li><a href="#" className="hover:text-blue-400 transition-colors">Study Groups</a></li>
-              <li><a href="#" className="hover:text-blue-400 transition-colors">Help Center</a></li>
-              <li><a href="#" className="hover:text-blue-400 transition-colors">API Docs</a></li>
+          {/* Features */}
+          <div className="col-span-1">
+            <h3 className="text-lg font-semibold mb-4 text-blue-400 flex items-center gap-2">
+              <GraduationCap className="h-5 w-5" />
+              Features
+            </h3>
+            <ul className="space-y-2">
+              <li>
+                <span className="text-gray-300 text-sm">AI Study Notes</span>
+              </li>
+              <li>
+                <span className="text-gray-300 text-sm">Exam Blueprints</span>
+              </li>
+              <li>
+                <span className="text-gray-300 text-sm">Revision Planners</span>
+              </li>
+              <li>
+                <span className="text-gray-300 text-sm">Mock Papers</span>
+              </li>
+              <li>
+                <span className="text-gray-300 text-sm">Community Sharing</span>
+              </li>
             </ul>
           </div>
 
-          {/* Contact */}
-          <div className="space-y-6">
-            <h4 className="text-white font-bold mb-4 text-lg">Stay Updated</h4>
-            <div className="relative">
-              <input 
-                type="email" 
-                placeholder="Enter your email" 
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-slate-100"
-              />
-              <button className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20">
-                Join Newsletter
-              </button>
+          {/* Help & Support */}
+          <div className="col-span-1 md:col-span-1">
+            <div className="flex items-center mb-4">
+              <Code className="h-6 w-6 text-blue-400 mr-2" />
+              <span className="text-lg font-semibold text-blue-400">Help this project</span>
             </div>
+            <p className="text-gray-300 mb-4 text-sm">
+              If you want to support this project by becoming a sponsor or want to contribute, just ping us on{' '}
+              <a 
+                href="https://x.com/Amritanshutwt" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-blue-400 hover:text-white transition-colors font-bold"
+              >
+                Twitter/X
+              </a>
+              . Want to make this project better or advance its features?{' '}
+              <a 
+                href="https://github.com/bhutuklearning/AI-Academic-Assistant" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-blue-400 hover:text-white transition-colors font-bold"
+              >
+                Contribute here.
+              </a>
+            </p>
           </div>
         </div>
 
-        <div className="pt-8 border-t border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-500">
-          <p>© 2026 Acadbuddy AI. All rights reserved.</p>
-          <div className="flex gap-8">
-            <a href="#" className="hover:text-slate-300">Privacy Policy</a>
-            <a href="#" className="hover:text-slate-300">Terms of Service</a>
-            <a href="#" className="hover:text-slate-300">Cookie Settings</a>
+        <div className="border-t border-gray-700 mt-8 pt-6 flex flex-col md:flex-row justify-between items-center">
+          <p className="text-gray-400 text-sm">
+            © {currentYear} Academic Help Buddy. All rights reserved.
+          </p>
+          <div className="mt-4 md:mt-0 flex items-center text-gray-400 text-sm">
+            <span>Built with</span>
+            <Heart className="h-4 w-4 text-red-500 mx-1" />
+            <span>for students</span>
           </div>
         </div>
       </div>
@@ -80,3 +143,4 @@ const Footer = () => {
 };
 
 export default Footer;
+

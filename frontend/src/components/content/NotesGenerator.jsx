@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
-import GenerationOverlay from '../ui/GenerationOverlay';
 
 const NotesGenerator = ({ subjectId }) => {
   const [formData, setFormData] = useState({
@@ -12,13 +11,6 @@ const NotesGenerator = ({ subjectId }) => {
   });
   const [loading, setLoading] = useState(false);
   const [generatedContent, setGeneratedContent] = useState(null);
-  const outputRef = useRef(null);
-
-  useEffect(() => {
-    if (generatedContent && outputRef.current) {
-      outputRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, [generatedContent]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -42,10 +34,10 @@ const NotesGenerator = ({ subjectId }) => {
   };
 
   return (
-    <div className="relative space-y-8">
+    <div className="space-y-8">
       <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">Generate Study Notes</h2>
 
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900/80 p-6 sm:p-8 rounded-4xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 dark:border-slate-800 backdrop-blur-xl space-y-6">
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900/80 p-6 sm:p-8 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 dark:border-slate-800 backdrop-blur-xl space-y-6">
         <div>
           <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
             Topic/Unit <span className="text-rose-500">*</span>
@@ -99,7 +91,7 @@ const NotesGenerator = ({ subjectId }) => {
       </form>
 
       {generatedContent && (
-        <div ref={outputRef} className="bg-emerald-50 dark:bg-slate-950/70 border border-emerald-100 dark:border-emerald-800/60 p-6 sm:p-8 rounded-4xl shadow-sm transform transition-all duration-300">
+        <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 p-6 sm:p-8 rounded-[2rem] shadow-sm transform transition-all duration-300">
           <h3 className="text-2xl font-extrabold mb-6 text-emerald-800 dark:text-emerald-300 tracking-tight flex items-center gap-3">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             {generatedContent.title}
@@ -122,13 +114,6 @@ const NotesGenerator = ({ subjectId }) => {
           </div>
         </div>
       )}
-
-      <GenerationOverlay
-        open={loading}
-        title="Generating notes"
-        description="The backend is writing, structuring, and polishing your notes."
-        accent="violet"
-      />
     </div>
   );
 };

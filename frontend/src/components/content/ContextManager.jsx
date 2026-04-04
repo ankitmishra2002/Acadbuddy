@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import { Upload, FileText, X, Cloud, Loader2, Eye, Download, Share2 } from 'lucide-react';
 import api from '../../services/api';
 import { useNavigate } from 'react-router-dom';
-import { notifyError, notifySuccess } from '../../lib/notifications';
 
 const ContextManager = ({ subjectId }) => {
   const navigate = useNavigate();
@@ -42,14 +41,16 @@ const ContextManager = ({ subjectId }) => {
       const formDataToSend = new FormData();
       formDataToSend.append('file', fileToUpload);
       
-      const response = await api.post('/cloudinary/upload', formDataToSend);
+      const response = await api.post('/cloudinary/upload', formDataToSend, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
       
       setCloudinaryUrl(response.data.url);
       setCloudinaryPublicId(response.data.public_id);
-      notifySuccess('File uploaded to Cloud storage successfully.', 'Upload complete');
+      alert('File uploaded to Cloudinary successfully!');
     } catch (error) {
       console.error('Cloudinary upload error:', error);
-      notifyError('Failed to upload to Cloud storage. You can still submit the file directly.', 'Upload failed');
+      alert('Failed to upload file to Cloudinary. You can still upload directly.');
     } finally {
       setUploadingToCloudinary(false);
     }
@@ -67,14 +68,8 @@ const ContextManager = ({ subjectId }) => {
       if (cloudinaryUrl) {
         // Send Cloudinary URL in a format the backend can parse
         formDataToSend.append('content', `[Cloudinary File]\nURL: ${cloudinaryUrl}\nPublic ID: ${cloudinaryPublicId}`);
-        formDataToSend.append('fileUrl', cloudinaryUrl);
-        formDataToSend.append('publicId', cloudinaryPublicId || '');
-        formDataToSend.append('mimeType', file?.type || '');
-        formDataToSend.append('fileName', file?.name || '');
       } else if (file) {
         formDataToSend.append('file', file);
-        formDataToSend.append('fileName', file.name);
-        formDataToSend.append('mimeType', file.type);
       } else {
         formDataToSend.append('content', formData.content);
       }
@@ -82,7 +77,9 @@ const ContextManager = ({ subjectId }) => {
       formDataToSend.append('topic', formData.topic);
       formDataToSend.append('keywords', formData.keywords);
 
-      await api.post('/context', formDataToSend);
+      await api.post('/context', formDataToSend, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
 
       setShowModal(false);
       setFormData({ type: 'syllabus', title: '', content: '', topic: '', keywords: '' });
@@ -90,10 +87,9 @@ const ContextManager = ({ subjectId }) => {
       setCloudinaryUrl(null);
       setCloudinaryPublicId(null);
       fetchContexts();
-      notifySuccess('Context uploaded successfully.', 'Upload complete');
     } catch (error) {
       console.error('Upload error:', error);
-      notifyError(error.response?.data?.message || 'Failed to upload context.', 'Upload failed');
+      alert('Failed to upload context');
     }
   };
 
@@ -102,9 +98,8 @@ const ContextManager = ({ subjectId }) => {
     try {
       await api.delete(`/context/${id}`);
       fetchContexts();
-      notifySuccess('Context deleted successfully.', 'Deleted');
     } catch (error) {
-      notifyError('Failed to delete context.', 'Delete failed');
+      alert('Failed to delete context');
     }
   };
 
@@ -141,7 +136,7 @@ const ContextManager = ({ subjectId }) => {
       }
     } else {
       // Show content in a modal or new page
-      notifySuccess(context.content.substring(0, 500) + (context.content.length > 500 ? '...' : ''), 'File content preview');
+      alert('File content:\n\n' + context.content.substring(0, 500) + (context.content.length > 500 ? '...' : ''));
     }
   };
 
@@ -174,11 +169,11 @@ const ContextManager = ({ subjectId }) => {
       );
 
       await api.post('/community/posts', formDataToSend);
-      notifySuccess('Context shared to community successfully.', 'Shared');
+      alert('Context shared to community successfully!');
       navigate('/community');
     } catch (error) {
       console.error('Share error:', error);
-      notifyError('Failed to share context to the community. Please try again.', 'Share failed');
+      alert('Failed to share to community. Please try again.');
     }
   };
 
@@ -195,7 +190,7 @@ const ContextManager = ({ subjectId }) => {
         <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">Context Management</h2>
         <button
           onClick={() => setShowModal(true)}
-          className="bg-linear-to-r from-blue-600 to-indigo-600 text-white px-5 py-2.5 rounded-xl hover:shadow-lg hover:shadow-blue-500/30 flex items-center gap-2 font-bold transition-all hover:-translate-y-0.5 w-full sm:w-auto justify-center"
+          className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-2.5 rounded-xl hover:shadow-lg hover:shadow-blue-500/30 flex items-center gap-2 font-bold transition-all hover:-translate-y-0.5 w-full sm:w-auto justify-center"
         >
           <Upload size={18} />
           Upload Context
@@ -204,7 +199,7 @@ const ContextManager = ({ subjectId }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {contexts.map((context) => (
-          <div key={context._id} className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white dark:border-slate-800 hover:-translate-y-1 hover:shadow-lg transition-all flex flex-col h-full group">
+          <div key={context._id} className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-6 rounded-[1.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white dark:border-slate-800 hover:-translate-y-1 hover:shadow-lg transition-all flex flex-col h-full group">
             <div className="flex justify-between items-start mb-4">
               <div>
                 <span className="text-[10px] font-extrabold uppercase tracking-wider bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-md border border-blue-100 dark:border-blue-800">
@@ -223,7 +218,7 @@ const ContextManager = ({ subjectId }) => {
             {context.metadata?.topic && (
               <p className="text-sm text-slate-600 dark:text-slate-400 font-medium mb-1 line-clamp-1">Topic: {context.metadata.topic}</p>
             )}
-            <p className="text-sm text-slate-500 dark:text-slate-500 mt-1 mb-6 grow line-clamp-3 leading-relaxed">
+            <p className="text-sm text-slate-500 dark:text-slate-500 mt-1 mb-6 flex-grow line-clamp-3 leading-relaxed">
               {context.fileUrl ? '📎 File attached' : context.content}
             </p>
             <div className="flex flex-wrap gap-2 mt-auto pt-4 border-t border-slate-100 dark:border-slate-800/60 w-full">
@@ -259,8 +254,8 @@ const ContextManager = ({ subjectId }) => {
       </div>
 
       {showModal && createPortal(
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-9999 p-4 sm:p-6 overflow-y-auto">
-          <div className="bg-white dark:bg-slate-900 p-7 sm:p-10 rounded-4xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-100 dark:border-slate-800 w-full max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar my-auto">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 sm:p-6 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 p-7 sm:p-10 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-100 dark:border-slate-800 w-full max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar my-auto">
             <h2 className="text-2xl font-extrabold mb-6 text-slate-800 dark:text-slate-100 tracking-tight">Upload Context</h2>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>

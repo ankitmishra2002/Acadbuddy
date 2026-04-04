@@ -4,7 +4,6 @@ import { FileText, Eye, Trash2, Share2, Sparkles } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
-import { notifyError, notifySuccess } from '../../lib/notifications';
 
 const ContentList = ({ subjectId }) => {
   const [contents, setContents] = useState([]);
@@ -46,7 +45,7 @@ const ContentList = ({ subjectId }) => {
       await api.delete(`/content/${id}`);
       fetchContents();
     } catch (error) {
-      notifyError('Failed to delete content.', 'Delete failed');
+      alert('Failed to delete content');
     }
   };
 
@@ -83,13 +82,15 @@ const ContentList = ({ subjectId }) => {
       };
       postData.append('metadata', JSON.stringify(metadata));
 
-      await api.post('/community/posts', postData);
+      await api.post('/community/posts', postData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
 
-      notifySuccess('Content shared to community successfully.', 'Shared');
+      alert('Content shared to community successfully!');
       setShowShareModal(false);
       setSharingContent(null);
     } catch (error) {
-      notifyError(error.response?.data?.message || error.message || 'Failed to share content.', 'Share failed');
+      alert('Failed to share content: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -124,7 +125,7 @@ const ContentList = ({ subjectId }) => {
       </div>
 
       {contents.length === 0 ? (
-        <div className="text-center py-16 bg-white dark:bg-slate-900/80 rounded-4xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 dark:border-slate-800 backdrop-blur-xl">
+        <div className="text-center py-16 bg-white dark:bg-slate-900/80 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 dark:border-slate-800 backdrop-blur-xl">
           <FileText size={64} className="mx-auto text-slate-300 dark:text-slate-600 mb-6" />
           <p className="text-slate-500 dark:text-slate-400 font-medium text-lg">No content generated yet. Create some using the tools above!</p>
         </div>
@@ -180,8 +181,8 @@ const ContentList = ({ subjectId }) => {
 
       {/* Share to Community Modal */}
       {showShareModal && sharingContent && createPortal(
-        <div className="fixed inset-0 z-9999 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-4xl shadow-2xl w-full max-w-lg border border-slate-100 dark:border-slate-800 scale-100 animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-2xl w-full max-w-lg border border-slate-100 dark:border-slate-800 scale-100 animate-in zoom-in-95 duration-200">
             <h2 className="text-2xl font-bold mb-6 text-slate-800 dark:text-slate-100 flex items-center gap-3">
               <span className="bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-400 p-2 rounded-xl">
                 <Share2 size={24} />

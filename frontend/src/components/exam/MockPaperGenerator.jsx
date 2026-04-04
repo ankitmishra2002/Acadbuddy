@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { BookOpen, Sparkles } from 'lucide-react';
 import api from '../../services/api';
-import GenerationOverlay from '../ui/GenerationOverlay';
 
 const MockPaperGenerator = ({ subjectId }) => {
   const [formData, setFormData] = useState({
@@ -10,13 +9,6 @@ const MockPaperGenerator = ({ subjectId }) => {
   });
   const [loading, setLoading] = useState(false);
   const [generatedContent, setGeneratedContent] = useState(null);
-  const outputRef = useRef(null);
-
-  useEffect(() => {
-    if (generatedContent && outputRef.current) {
-      outputRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, [generatedContent]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -35,10 +27,10 @@ const MockPaperGenerator = ({ subjectId }) => {
   };
 
   return (
-    <div className="relative space-y-8">
+    <div className="space-y-8">
       <h3 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">Mock Paper Generator</h3>
 
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900/80 p-6 sm:p-8 rounded-4xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 dark:border-slate-800 backdrop-blur-xl space-y-6">
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900/80 p-6 sm:p-8 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 dark:border-slate-800 backdrop-blur-xl space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
@@ -80,7 +72,7 @@ const MockPaperGenerator = ({ subjectId }) => {
       </form>
 
       {generatedContent && (
-        <div ref={outputRef} className="bg-blue-50 dark:bg-slate-950/70 p-6 sm:p-8 rounded-4xl border border-blue-100 dark:border-blue-800/60 shadow-sm transition-all focus-within:ring-2 focus-within:ring-blue-500">
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-6 sm:p-8 rounded-[2rem] border border-blue-100 dark:border-blue-800/50 shadow-sm transition-all focus-within:ring-2 focus-within:ring-blue-500">
           <h4 className="text-2xl font-extrabold mb-8 text-blue-800 dark:text-blue-300 tracking-tight flex items-center gap-3">
             <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
             {generatedContent.title}
@@ -90,7 +82,7 @@ const MockPaperGenerator = ({ subjectId }) => {
               <div key={index} className="bg-white dark:bg-blue-900/40 p-5 sm:p-7 rounded-2xl border-l-4 border-l-blue-500 border-y border-r border-blue-100/50 dark:border-blue-800/50 shadow-[0_2px_10px_rgb(0,0,0,0.02)] transition-all hover:shadow-md">
                 <div className="flex items-start gap-3 mb-4">
                   <span className="font-extrabold text-blue-600 dark:text-blue-400 text-xl">Q{index + 1}.</span>
-                  <span className={`text-xs font-bold px-3 py-1.5 rounded-lg border shrink-0 mt-0.5 ${
+                  <span className={`text-xs font-bold px-3 py-1.5 rounded-lg border flex-shrink-0 mt-0.5 ${
                     question.type === 'short' ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-400 dark:border-emerald-800/50' : 'bg-violet-100 text-violet-800 border-violet-200 dark:bg-violet-900/40 dark:text-violet-400 dark:border-violet-800/50'
                   }`}>
                     {question.type === 'short' ? 'Short Answer' : 'Long Answer'}
@@ -108,13 +100,6 @@ const MockPaperGenerator = ({ subjectId }) => {
           </div>
         </div>
       )}
-
-      <GenerationOverlay
-        open={loading}
-        title="Generating mock paper"
-        description="The backend is assembling short and long answer questions."
-        accent="blue"
-      />
     </div>
   );
 };

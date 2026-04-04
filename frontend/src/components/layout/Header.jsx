@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
-import { Menu, X, Sun, Moon } from "lucide-react";
-import { UserButton, SignInButton, SignUpButton, Show } from '@clerk/react';
+import { LogOut, User, Menu, X, Sun, Moon } from "lucide-react";
+import useAuthStore from "../../store/authStore";
 
 const Header = ({ onToggleSidebar, sidebarOpen, isDarkMode, onToggleTheme }) => {
+  const { user, logout } = useAuthStore();
 
   return (
     <header className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 shadow-sm sticky top-0 z-50 transition-colors duration-500 shadow-[0_4px_30px_rgb(0,0,0,0.02)]">
@@ -58,26 +59,31 @@ const Header = ({ onToggleSidebar, sidebarOpen, isDarkMode, onToggleTheme }) => 
               )}
             </button>
 
-            <Show when="signed-in">
-              <div className="flex items-center justify-center p-1 cursor-pointer">
-                <UserButton />
+            {/* User Profile Link */}
+            <Link
+              to="/profile"
+              className="flex items-center gap-2 sm:gap-3 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 transition-all py-2 px-3 sm:px-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 touch-manipulation font-semibold"
+              title={user?.name || "User Profile"}
+            >
+              <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-1.5 rounded-lg">
+                <User size={18} strokeWidth={2.5} />
               </div>
-            </Show>
+              <span className="hidden md:inline text-sm sm:text-base truncate max-w-[120px] lg:max-w-none">
+                {user?.name || "User"}
+              </span>
+            </Link>
+            
+            <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block mx-1"></div>
 
-            <Show when="signed-out">
-              <div className="flex items-center gap-2">
-                <SignInButton mode="modal">
-                  <button className="text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 rounded-lg transition-colors">
-                    Sign In
-                  </button>
-                </SignInButton>
-                <SignUpButton mode="modal">
-                  <button className="text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm hidden sm:block">
-                    Sign Up
-                  </button>
-                </SignUpButton>
-              </div>
-            </Show>
+            {/* Logout Button */}
+            <button
+              onClick={logout}
+              className="flex items-center gap-2 sm:gap-2.5 text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-all py-2 px-3 sm:px-4 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-900/20 touch-manipulation font-medium border border-transparent hover:border-rose-100 dark:hover:border-rose-900/50"
+              title="Logout"
+            >
+              <LogOut size={18} />
+              <span className="hidden sm:inline text-sm">Logout</span>
+            </button>
           </div>
         </div>
       </div>

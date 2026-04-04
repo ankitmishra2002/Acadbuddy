@@ -1,272 +1,280 @@
-import React, { useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  FileText, Zap, Star, Layout, 
-  ArrowUpRight, Clock, Box, Play,
-  Plus, Upload, Sparkles, Brain, ArrowRight
-} from 'lucide-react';
-import DashboardLayout from '../components/layout/DashboardLayout';
-import useAuthStore from '../store/authStore';
-import useSubjectStore from '../store/subjectStore';
-import useUserStore from '../store/userStore';
-import { useNavigate, Link } from 'react-router-dom';
-
-const StatCard = ({ label, value, icon: Icon, color, delay }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay, duration: 0.5 }}
-    whileHover={{ y: -4, scale: 1.02 }}
-    className="bg-white dark:bg-white/[0.04] p-5 rounded-2xl border border-gray-200 dark:border-white/[0.08] shadow-sm dark:shadow-none backdrop-blur-sm"
-  >
-    <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center mb-4`}>
-      <Icon size={20} className="text-white" />
-    </div>
-    <div className="text-gray-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1">{label}</div>
-    <div className="flex items-end gap-2">
-      <span className="text-2xl font-black text-gray-900 dark:text-white leading-none">{value}</span>
-      <span className="text-emerald-500 text-[10px] font-bold pb-0.5 flex items-center gap-0.5">
-        <ArrowUpRight size={10} /> +12%
-      </span>
-    </div>
-  </motion.div>
-);
-
-const SubjectPreview = ({ id, name, progress, units, color, icon: Icon, delay }) => {
-  const navigate = useNavigate();
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay, duration: 0.5 }}
-      onClick={() => navigate(`/subjects/${id}`)}
-      className="bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] rounded-2xl p-4 flex items-center gap-5 hover:bg-gray-50 dark:hover:bg-white/[0.06] transition-colors cursor-pointer group"
-    >
-      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center shadow-lg shadow-black/10`}>
-        <Icon size={22} className="text-white" />
-      </div>
-      <div className="flex-1">
-        <h4 className="text-gray-900 dark:text-white font-bold text-sm tracking-tight mb-1">{name}</h4>
-        <div className="flex items-center gap-3">
-          <div className="flex-1 h-1.5 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
-            <motion.div 
-              initial={{ width: 0 }}
-              animate={{ width: `${progress}%` }}
-              transition={{ duration: 1, delay: delay + 0.3 }}
-              className={`h-full bg-gradient-to-r ${color}`} 
-            />
-          </div>
-          <span className="text-[10px] font-bold text-gray-500 dark:text-slate-400 whitespace-nowrap">{progress}%</span>
-        </div>
-        <div className="text-[10px] text-gray-400 dark:text-slate-500 mt-1 font-medium italic">{units} Units Ready</div>
-      </div>
-      <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/[0.08] flex items-center justify-center group-hover:bg-violet-500 group-hover:text-white transition-all transform group-hover:rotate-12">
-        <Play size={14} className="fill-current" />
-      </div>
-    </motion.div>
-  );
-};
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { BookOpen, TrendingUp, Clock, Award, FileText, ChevronRight, Activity, Globe, ArrowRight } from 'lucide-react';
+import api from '../services/api';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { motion } from 'framer-motion';
 
 const Dashboard = () => {
-  const navigate = useNavigate();
-  const { user } = useAuthStore();
-  const { subjects, fetchSubjects } = useSubjectStore();
-  const { stats, fetchStats, recentContent, fetchRecentContent } = useUserStore();
+  const [stats, setStats] = useState(null);
+  const [recentSessions, setRecentSessions] = useState([]);
+  const [recentContent, setRecentContent] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchSubjects();
-    fetchStats();
-    fetchRecentContent();
+    fetchDashboardData();
   }, []);
 
-  const dashboardStats = [
-    { label: "Hours Studied", value: `${stats?.totalStudyTime || 0}h`, icon: Clock, color: "bg-violet-600" },
-    { label: "Study Streak", value: `${stats?.studyStreak || 0}d`, icon: Zap, color: "bg-amber-500" },
-    { label: "Quiz Accuracy", value: `${stats?.quiz?.accuracy || 0}%`, icon: Star, color: "bg-indigo-500" },
-    { label: "Total Sessions", value: `${stats?.totalSessions || 0}`, icon: Layout, color: "bg-emerald-500" },
-  ];
+  const fetchDashboardData = async () => {
+    try {
+      const [progressRes, sessionsRes, contentRes] = await Promise.all([
+        api.get('/users/progress'),
+        api.get('/sessions?limit=5'),
+        api.get('/users/recent-content?limit=5')
+      ]);
+
+      setStats(progressRes.data);
+      setRecentSessions(sessionsRes.data);
+      setRecentContent(contentRes.data);
+    } catch (error) {
+      console.error('Failed to fetch dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  const chartData = stats?.quiz?.topicAccuracy?.slice(0, 5).map(item => ({
+    topic: item.topic.length > 15 ? item.topic.substring(0, 15) + '...' : item.topic,
+    accuracy: Math.round(item.accuracy)
+  })) || [];
+
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+  
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } }
+  };
 
   return (
-    <DashboardLayout>
-      <div className="space-y-10">
-        
-        {/* ── Welcome Header ── */}
-        <section className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="space-y-1"
-          >
-            <div className="flex items-center gap-2 text-violet-500 font-bold text-sm uppercase tracking-widest">
-              <Sparkles size={16} />
-              Welcome Back, {user?.name?.split(' ')[0] || 'Scholar'}
-            </div>
-            <h1 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white tracking-tight leading-tight">
-              Ready to <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-indigo-600">crush your syllabus?</span>
-            </h1>
-          </motion.div>
-        </section>
-
-        {/* ── Quick Actions ── */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-violet-600/5 dark:bg-violet-600/10 p-8 rounded-[40px] border border-violet-500/20 shadow-inner">
-            <div className="space-y-4">
-                <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Need Study Material?</h2>
-                <p className="text-gray-500 dark:text-slate-400 text-sm font-medium">Select a subject below to generate your lecture notes, mock tests or PPTs instantly.</p>
-                <div className="flex flex-wrap gap-4 pt-2">
-                    <button 
-                        onClick={() => navigate('/subjects')}
-                        className="px-8 py-4 bg-violet-600 text-white font-black text-sm rounded-2xl shadow-xl shadow-violet-600/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-3"
-                    >
-                        <Sparkles size={18} />
-                        ✨ Generate AI Notes Now
-                    </button>
-                    <button 
-                        onClick={() => navigate('/ai-workspace')}
-                        className="px-8 py-4 bg-white dark:bg-white/5 text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 font-black text-sm rounded-2xl hover:bg-gray-50 dark:hover:bg-white/10 transition-all"
-                    >
-                        Explore Tools
-                    </button>
-                </div>
-            </div>
-            
-            <div className="hidden md:flex flex-col justify-center border-l border-violet-500/10 pl-10 space-y-3">
-                <div className="flex items-center gap-3 text-xs font-bold text-violet-500 uppercase tracking-widest">
-                    <Star size={14} /> Pro Tip
-                </div>
-                <p className="text-gray-500 dark:text-late-400 text-xs leading-relaxed">
-                    "Upload your syllabus in the <span className="text-violet-500">Subjects</span> section first to get the most accurate AI-generated content tailored to your university."
-                </p>
-            </div>
-        </section>
-
-        {/* ── Grid Stats ── */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {dashboardStats.map((stat, i) => (
-            <StatCard key={stat.label} {...stat} delay={0.1 * (i + 1)} />
-          ))}
-        </section>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          
-          {/* ── Progress Section ── */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xl font-black text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
-                <Layout size={20} className="text-violet-500" />
-                Your Subjects
-              </h3>
-              <button 
-                onClick={() => navigate('/subjects')}
-                className="text-sm font-bold text-violet-500 hover:text-violet-600 transition-colors uppercase tracking-wider"
-              >
-                View All
-              </button>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <AnimatePresence>
-                {subjects.slice(0, 4).map((subject, i) => (
-                  <SubjectPreview 
-                    key={subject._id} 
-                    id={subject._id}
-                    name={subject.name} 
-                    progress={subject.progress || 0} 
-                    units={subject.units || 0} 
-                    color={subject.color} 
-                    icon={subject.icon}
-                    delay={0.5 + (i * 0.1)} 
-                  />
-                ))}
-                {subjects.length === 0 && (
-                  <div className="col-span-2 py-8 bg-white/5 dark:bg-white/[0.02] rounded-3xl border border-dashed border-white/10 flex flex-col items-center justify-center text-slate-500">
-                    <p className="font-medium text-sm">No subjects found</p>
-                    <Link to="/subjects" className="text-violet-500 font-bold mt-2 hover:underline">Add one now</Link>
-                  </div>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
-
-          <div className="space-y-10">
-            {/* ── AI Assistant Card ── */}
-            <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.9, duration: 0.5 }}
-                className="relative group p-[1px] bg-gradient-to-br from-violet-500 via-indigo-600 to-blue-700 rounded-3xl overflow-hidden shadow-2xl shadow-violet-500/20"
-            >
-                <div className="h-full bg-white dark:bg-[#0c1020]/95 rounded-[23px] p-6 relative overflow-hidden backdrop-blur-xl">
-                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <Brain size={120} />
-                </div>
-                
-                <div className="relative z-10 space-y-6">
-                    <div className="inline-flex items-center gap-2.5 px-3 py-1 rounded-full bg-violet-500/10 text-violet-500 text-xs font-black uppercase tracking-widest leading-none">
-                    <div className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
-                    AI Assistant
-                    </div>
-                    
-                    <h3 className="text-2xl font-black text-gray-900 dark:text-white leading-tight">
-                    Need help with <br className="hidden sm:block" />
-                    your studies?
-                    </h3>
-                    
-                    <p className="text-gray-500 dark:text-slate-400 text-sm leading-relaxed">
-                    Generate revision notes, quizzes, or structured reports from your syllabus or external links.
-                    </p>
-                    
-                    <div className="space-y-4 pt-4">
-                    <button 
-                      onClick={() => navigate('/subjects')}
-                      className="w-full py-4 bg-gray-900 dark:bg-white text-white dark:text-[#0c1020] font-black text-sm rounded-2xl flex items-center justify-center gap-2.5 shadow-xl hover:shadow-black/5 transition-all"
-                    >
-                        <Upload size={18} />
-                        Upload Syllabus
-                    </button>
-                    <button 
-                      onClick={() => navigate('/ai-workspace')}
-                      className="w-full py-4 bg-violet-100 dark:bg-white/[0.06] text-violet-600 dark:text-white font-black text-sm rounded-2xl flex items-center justify-center gap-2.5 hover:bg-violet-200 dark:hover:bg-white/[0.1] transition-all"
-                    >
-                        Get Revision Sheet
-                    </button>
-                    </div>
-                </div>
-                </div>
-            </motion.div>
-
-            {/* ── Recent Activity Section ── */}
-            <div className="space-y-6">
-                <h3 className="text-xl font-black text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
-                <Clock size={20} className="text-violet-500" />
-                Recent Activity
-                </h3>
-                <div className="bg-white dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.08] rounded-[32px] overflow-hidden shadow-sm dark:shadow-none">
-                    {[
-                        { type: 'Notes', title: 'OS Context Switching', time: '2h ago', status: 'Generated' },
-                        { type: 'Quiz', title: 'Data Structures MCQ', time: '5h ago', status: 'Completed' },
-                        { type: 'Report', title: 'Cloud Computing Architecture', time: 'Yesterday', status: 'Viewed' },
-                    ].map((item, i) => (
-                        <div key={i} className={`p-5 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors ${i !== 2 ? 'border-b border-gray-100 dark:border-white/[0.04]' : ''}`}>
-                            <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center text-violet-500">
-                                    <Sparkles size={18} />
-                                </div>
-                                <div>
-                                    <h4 className="text-sm font-black text-gray-900 dark:text-white tracking-tight">{item.title}</h4>
-                                    <div className="text-[10px] text-gray-500 dark:text-slate-500 font-bold uppercase tracking-widest">{item.type} • {item.time}</div>
-                                </div>
-                            </div>
-                            <div className="px-3 py-1 bg-emerald-500/10 text-emerald-500 text-[10px] font-black uppercase tracking-widest rounded-full">
-                                {item.status}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-          </div>
-
+    <motion.div 
+      initial="hidden"
+      animate="show"
+      variants={containerVariants}
+      className="space-y-6 sm:space-y-8 w-full overflow-x-hidden pb-8"
+    >
+      <motion.div variants={itemVariants} className="flex items-center justify-between px-1">
+        <h1 className="text-4xl sm:text-5xl font-black bg-clip-text text-transparent bg-gradient-to-br from-indigo-700 via-blue-700 to-slate-800 dark:from-indigo-400 dark:via-blue-400 dark:to-white tracking-tighter pb-1 drop-shadow-sm">
+          Dashboard
+        </h1>
+        <div className="hidden sm:flex items-center gap-2 text-sm font-medium text-slate-500 dark:text-slate-400 bg-white px-4 py-2 rounded-full shadow-sm border border-slate-100 dark:border-slate-700">
+          <Activity size={16} className="text-blue-500" />
+          Live Overview
         </div>
+      </motion.div>
+
+      {/* Stats Cards */}
+      <motion.div variants={itemVariants} className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+        {[
+          { label: 'Total Questions', value: stats?.quiz?.totalQuestions || 0, icon: BookOpen, color: 'blue' },
+          { label: 'Accuracy', value: stats?.quiz?.accuracy ? `${Math.round(stats.quiz.accuracy)}%` : '0%', icon: TrendingUp, color: 'green' },
+          { label: 'Study Streak', value: `${stats?.studyStreak || 0} days`, icon: Award, color: 'yellow' },
+          { label: 'Study Time', value: stats?.totalStudyTime ? `${Math.round(stats.totalStudyTime)}h` : '0h', icon: Clock, color: 'purple' }
+        ].map((stat, i) => {
+          const Icon = stat.icon;
+          const bgColors = {
+            blue: 'from-blue-50 to-blue-100/50 text-blue-600 border-blue-100',
+            green: 'from-green-50 to-emerald-100/50 text-emerald-600 border-green-100',
+            yellow: 'from-amber-50 to-yellow-100/50 text-amber-600 border-amber-100',
+            purple: 'from-purple-50 to-fuchsia-100/50 text-purple-600 border-purple-100'
+          };
+          
+          return (
+            <div key={i} className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white dark:border-slate-800 p-5 sm:p-6 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all group">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="order-2 sm:order-1 min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400 truncate mb-1 uppercase tracking-wider">{stat.label}</p>
+                  <p className="text-2xl sm:text-3xl font-extrabold text-slate-800 dark:text-slate-100">{stat.value}</p>
+                </div>
+                <div className={`order-1 sm:order-2 w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl bg-gradient-to-br ${bgColors[stat.color]} border shadow-sm group-hover:scale-110 transition-transform duration-300`}>
+                  <Icon size={22} strokeWidth={2.5} />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </motion.div>
+
+      {/* Charts */}
+      {chartData.length > 0 && (
+        <motion.div variants={itemVariants} className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white dark:border-slate-800 p-6 sm:p-8 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
+              <Activity size={20} />
+            </div>
+            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Topic-wise Accuracy</h2>
+          </div>
+          <div className="w-full overflow-x-auto">
+            <ResponsiveContainer width="100%" height={250} minHeight={200}>
+              <BarChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis 
+                  dataKey="topic" 
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                  interval={0}
+                  tick={{ fontSize: 11, fill: '#64748b' }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                <Tooltip 
+                  contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }}
+                  cursor={{ fill: '#f1f5f9' }}
+                />
+                <Bar dataKey="accuracy" fill="#3b82f6" radius={[6, 6, 0, 0]} barSize={40} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Main Content Areas */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+        
+        {/* Recent Generated Content */}
+        <motion.div variants={itemVariants} className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white dark:border-slate-800 p-6 sm:p-8 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
+              <FileText size={20} />
+            </div>
+            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Recent Content</h2>
+          </div>
+          
+          {recentContent.length > 0 ? (
+            <div className="space-y-3">
+              {recentContent.map((content) => (
+                <Link
+                  key={content._id}
+                  to={`/content/${content._id}`}
+                  className="group flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/70 border border-slate-100 dark:border-slate-700 rounded-2xl hover:bg-white dark:hover:bg-slate-800 hover:shadow-md hover:-translate-y-0.5 hover:border-blue-100 transition-all cursor-pointer gap-3"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-1.5">
+                      <span className="text-[10px] font-bold tracking-wider uppercase bg-blue-100 text-blue-800 px-2.5 py-1 rounded-md whitespace-nowrap border border-blue-200/50">
+                        {content.type.replace('_', ' ')}
+                      </span>
+                      <p className="font-bold text-slate-800 dark:text-slate-100 text-sm sm:text-base truncate group-hover:text-blue-600 transition-colors">{content.title}</p>
+                    </div>
+                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 truncate flex items-center gap-1.5">
+                      <span className="font-medium text-slate-700 dark:text-slate-200 dark:text-slate-200">{content.subjectId?.name || 'Unknown Subject'}</span>
+                      {content.topic && <span className="opacity-60">• {content.topic}</span>}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-slate-400 font-medium ml-1">
+                    <span className="bg-white dark:bg-slate-700 px-2 py-1 rounded-md shadow-sm border border-slate-100 dark:border-slate-600 hidden sm:block">
+                      {new Date(content.createdAt).toLocaleDateString()}
+                    </span>
+                    <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all duration-300">
+                      <ChevronRight size={16} strokeWidth={3} />
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+             <div className="flex flex-col items-center justify-center p-8 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-dashed border-slate-300 dark:border-slate-600 text-center">
+                <FileText className="text-slate-300 dark:text-slate-600 mb-3" size={32} />
+                <p className="text-slate-500 dark:text-slate-400 font-medium">No content generated yet.</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Visit your subjects to get started!</p>
+             </div>
+          )}
+        </motion.div>
+
+        {/* Recent Sessions */}
+        <motion.div variants={itemVariants} className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white dark:border-slate-800 p-6 sm:p-8 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600">
+              <Clock size={20} />
+            </div>
+            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Recent Sessions</h2>
+          </div>
+
+          {recentSessions.length > 0 ? (
+            <div className="space-y-3 flex-grow">
+              {recentSessions.map((session) => (
+                <div key={session._id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/70 border border-slate-100 dark:border-slate-700 rounded-2xl hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm transition-all gap-4">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-slate-800 dark:text-slate-100 text-sm sm:text-base truncate mb-1">
+                      {session.subjectId?.name || session.contentId?.title || 'Unknown Subject'}
+                    </p>
+                    <div className="flex items-center gap-2">
+                       <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                       <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
+                         {new Date(session.startTime).toLocaleDateString()} • {session.mode}
+                       </p>
+                    </div>
+                  </div>
+                  <div className="px-3 py-1.5 bg-white dark:bg-slate-700 rounded-lg border border-slate-100 dark:border-slate-600 text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 shadow-sm whitespace-nowrap">
+                    {session.duration ? `${Math.round(session.duration / 60000)} min` : (
+                      <span className="text-amber-600 dark:text-amber-400 animate-pulse">Ongoing</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full p-8 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-dashed border-slate-300 dark:border-slate-600 text-center">
+                <Clock className="text-slate-300 dark:text-slate-500 mb-3" size={32} />
+                <p className="text-slate-500 dark:text-slate-400 font-medium">No active sessions.</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Track time while studying topics.</p>
+            </div>
+          )}
+        </motion.div>
       </div>
-    </DashboardLayout>
+
+      {/* Quick Actions (CTAs) */}
+      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mt-4">
+        <Link
+          to="/subjects"
+          className="relative overflow-hidden group bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 text-white p-6 sm:p-8 rounded-[2rem] shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 hover:-translate-y-1 transition-all duration-300"
+        >
+          <div className="absolute top-0 right-0 -translate-y-4 translate-x-4 w-32 h-32 bg-white/10 rounded-full blur-[30px] group-hover:bg-white/20 transition-all duration-500"></div>
+          <div className="relative z-10 flex items-center justify-between">
+            <div>
+              <div className="inline-flex p-3 bg-white/10 backdrop-blur-md rounded-xl mb-4 text-white">
+                <BookOpen size={24} />
+              </div>
+              <h3 className="text-xl sm:text-2xl font-bold mb-2 tracking-tight block">Manage Subjects</h3>
+              <p className="text-blue-100/80 font-medium text-sm sm:text-base">Organize curricula and course files</p>
+            </div>
+            <div className="w-12 h-12 rounded-full border border-white/20 flex items-center justify-center bg-white/5 backdrop-blur-md group-hover:bg-white inline-flex group-hover:text-blue-600 transition-all duration-300">
+              <ArrowRight size={20} className="-translate-x-1 group-hover:translate-x-0 transition-transform" />
+            </div>
+          </div>
+        </Link>
+        <Link
+          to="/community"
+          className="relative overflow-hidden group bg-gradient-to-br from-emerald-500 via-teal-600 to-green-700 text-white p-6 sm:p-8 rounded-[2rem] shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 hover:-translate-y-1 transition-all duration-300"
+        >
+          <div className="absolute top-0 right-0 -translate-y-4 translate-x-4 w-32 h-32 bg-white/10 rounded-full blur-[30px] group-hover:bg-white/20 transition-all duration-500"></div>
+           <div className="relative z-10 flex items-center justify-between">
+            <div>
+              <div className="inline-flex p-3 bg-white/10 backdrop-blur-md rounded-xl mb-4 text-white">
+                <Globe size={24} />
+              </div>
+              <h3 className="text-xl sm:text-2xl font-bold mb-2 tracking-tight block">Explore Community</h3>
+              <p className="text-emerald-100/80 font-medium text-sm sm:text-base">Discover & clone top-tier materials</p>
+            </div>
+            <div className="w-12 h-12 rounded-full border border-white/20 flex items-center justify-center bg-white/5 backdrop-blur-md group-hover:bg-white inline-flex group-hover:text-emerald-600 transition-all duration-300">
+              <ArrowRight size={20} className="-translate-x-1 group-hover:translate-x-0 transition-transform" />
+            </div>
+          </div>
+        </Link>
+      </motion.div>
+    </motion.div>
   );
 };
 

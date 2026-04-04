@@ -1,291 +1,479 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import ReactMarkdown from 'react-markdown';
-import { 
-  ArrowLeft, ThumbsUp, ThumbsDown, 
-  MessageCircle, Share2, Send,
-  User as UserIcon, Clock, BookOpen,
-  MoreVertical, Shield, Download,
-  ExternalLink, MessageSquare, ChevronRight
-} from 'lucide-react';
-import DashboardLayout from '../components/layout/DashboardLayout';
-import useCommunityStore from '../store/communityStore';
+import { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, ThumbsUp, ThumbsDown, Copy, Eye, FileText, Download } from 'lucide-react';
+import api from '../services/api';
 import useAuthStore from '../store/authStore';
-import { formatDistanceToNow } from 'date-fns';
-
-const Comment = ({ comment }) => (
-  <motion.div 
-    initial={{ opacity: 0, y: 10 }}
-    animate={{ opacity: 1, y: 0 }}
-    className="flex gap-4 p-4 rounded-3xl bg-white dark:bg-white/[0.03] border border-gray-100 dark:border-white/[0.06]"
-  >
-    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/20 to-indigo-600/20 flex items-center justify-center text-violet-500 font-black text-xs uppercase">
-       {comment.userId?.name?.charAt(0) || 'U'}
-    </div>
-    <div className="flex-1 space-y-1">
-      <div className="flex items-center justify-between">
-        <h5 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight">{comment.userId?.name || 'Anonymous'}</h5>
-        <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">
-            {(() => {
-                try {
-                    return `${formatDistanceToNow(new Date(comment.createdAt))} ago`;
-                } catch(e) {
-                    return 'Recent';
-                }
-            })()}
-        </span>
-      </div>
-      <p className="text-sm text-gray-600 dark:text-slate-400 leading-relaxed">{comment.content}</p>
-    </div>
-  </motion.div>
-);
 
 const PostDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { fetchPostById, fetchComments, addComment, votePost, loading } = useCommunityStore();
-  const { user } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
   const [post, setPost] = useState(null);
   const [comments, setComments] = useState([]);
-  const [newComment, setNewComment] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const flattenAIContent = (data) => {
-    if (!data) return "No content available.";
-    if (typeof data === 'string') return data;
-    
-    let md = "";
-    if (data.sections && Array.isArray(data.sections)) {
-        if (data.title) md += `# ${data.title}\n\n`;
-        data.sections.forEach(s => {
-            md += `## ${s.title}\n${s.content}\n\n`;
-        });
-        if (data.references && Array.isArray(data.references)) {
-            md += `### References\n${data.references.map(r => `- ${r}`).join('\n')}\n`;
-        }
-    } 
-    else if (data.slides && Array.isArray(data.slides)) {
-        if (data.title) md += `# ${data.title}\n\n`;
-        data.slides.forEach(s => {
-            md += `---\n\n## Slide ${s.slideNumber}: ${s.title}\n${s.content}\n\n${s.notes ? `_Notes: ${s.notes}_` : ''}\n\n`;
-        });
-    }
-    else {
-        md = JSON.stringify(data, null, 2);
-    }
-    return md;
-  };
-
-  const mdContent = flattenAIContent(post?.content);
-
-  const safeFormatDate = (date) => {
-    try {
-        if (!date) return 'Recent';
-        return `${formatDistanceToNow(new Date(date))} ago`;
-    } catch (e) {
-        return 'Recent';
-    }
-  };
+  const [commentText, setCommentText] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [showCloneModal, setShowCloneModal] = useState(false);
+  const [subjectId, setSubjectId] = useState('');
 
   useEffect(() => {
-    const loadData = async () => {
-      const postData = await fetchPostById(id);
-      if (postData) {
-        setPost(postData);
-        const commentData = await fetchComments(id);
-        setComments(commentData);
-      }
-    };
-    loadData();
+    fetchPost();
+    fetchComments();
   }, [id]);
 
-  const handleVote = async (type) => {
-    const success = await votePost(id, type);
-    if (success) {
-      // Reload post to update counts
-      const updatedPost = await fetchPostById(id);
-      setPost(updatedPost);
+  const fetchPost = async () => {
+    try {
+      const response = await api.get(`/community/posts/${id}`);
+      const postData = response.data;
+      
+      // Parse content if it's a string
+      if (typeof postData.content === 'string') {
+        try {
+          postData.content = JSON.parse(postData.content);
+        } catch (e) {
+          // If parsing fails, try to extract JSON from the string
+          const jsonMatch = postData.content.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            try {
+              postData.content = JSON.parse(jsonMatch[0]);
+            } catch (e2) {
+              console.error('Failed to parse content:', e2);
+            }
+          }
+        }
+      }
+      
+      setPost(postData);
+    } catch (error) {
+      console.error('Failed to fetch post:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleAddComment = async (e) => {
+  const fetchComments = async () => {
+    try {
+      const response = await api.get(`/community/posts/${id}/comments`);
+      setComments(response.data);
+    } catch (error) {
+      console.error('Failed to fetch comments:', error);
+    }
+  };
+
+  const handleVote = async (voteType) => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    try {
+      await api.post(`/community/posts/${id}/vote`, { voteType });
+      fetchPost();
+    } catch (error) {
+      alert('Failed to vote');
+    }
+  };
+
+  const handleComment = async (e) => {
     e.preventDefault();
-    if (!newComment.trim() || isSubmitting) return;
-
-    setIsSubmitting(true);
-    const result = await addComment(id, newComment);
-    if (result.success) {
-      setComments([result.comment, ...comments]);
-      setNewComment('');
-      // Update local post comment count
-      setPost({ ...post, commentCount: (post.commentCount || 0) + 1 });
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
     }
-    setIsSubmitting(false);
+    try {
+      await api.post(`/community/posts/${id}/comment`, { content: commentText });
+      setCommentText('');
+      fetchComments();
+    } catch (error) {
+      alert('Failed to post comment');
+    }
   };
 
-  if (loading && !post) return (
-    <DashboardLayout>
-       <div className="h-[60vh] flex flex-col items-center justify-center space-y-4">
-          <div className="w-12 h-12 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
-          <span className="text-xs font-black uppercase tracking-[0.3em] text-slate-500">Retrieving Post...</span>
-       </div>
-    </DashboardLayout>
-  );
+  const handleClone = async () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    try {
+      await api.post(`/community/posts/${id}/clone`, { subjectId });
+      setShowCloneModal(false);
+      alert('Content cloned to your workspace!');
+      navigate(`/subjects/${subjectId}`);
+    } catch (error) {
+      alert('Failed to clone content');
+    }
+  };
 
-  if (!post) return null;
+  if (loading) {
+    return <div className="text-center py-12">Loading...</div>;
+  }
+
+  if (!post) {
+    return <div className="text-center py-12">Post not found</div>;
+  }
 
   return (
-    <DashboardLayout>
-      <div className="max-w-4xl mx-auto space-y-8">
-        
-        {/* ── Navigation ── */}
-        <button 
-          onClick={() => navigate('/community')}
-          className="flex items-center gap-2 text-slate-500 hover:text-violet-500 transition-colors text-xs font-black uppercase tracking-widest"
-        >
-          <ArrowLeft size={16} /> Back to Community
-        </button>
+    <>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <Link
+        to="/community"
+        className="inline-flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 mb-6 transition-colors font-medium"
+      >
+        <ArrowLeft size={18} />
+        Back to Community
+      </Link>
 
-        {/* ── Main Post ── */}
-        <article className="bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] rounded-[40px] overflow-hidden shadow-2xl shadow-black/5 dark:shadow-none">
-           {/* Author Header */}
-           <div className="p-8 border-b border-gray-100 dark:border-white/[0.06] flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white font-black text-xl uppercase shadow-lg shadow-violet-500/20">
-                    {post.userId?.name?.charAt(0) || 'U'}
-                 </div>
-                 <div>
-                    <h1 className="text-xl font-black text-gray-900 dark:text-white tracking-tight leading-none mb-1">
-                        {post.userId?.name || 'Anonymous User'}
-                    </h1>
-                    <div className="flex items-center gap-2 text-[10px] text-gray-500 font-bold uppercase tracking-widest">
-                        <span>{post.userId?.university || 'University'}</span>
-                        <span className="w-1 h-1 rounded-full bg-slate-400" />
-                        <span>{safeFormatDate(post.createdAt)}</span>
-                    </div>
-                 </div>
-              </div>
-              <button className="p-3 bg-gray-50 dark:bg-white/5 rounded-2xl text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all">
-                 <MoreVertical size={20} />
-              </button>
-           </div>
+      <div className="bg-white dark:bg-slate-900/80 p-6 sm:p-10 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 dark:border-slate-800 backdrop-blur-xl">
+          <div className="mb-8">
+            <span className="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg border border-blue-100/50 dark:border-blue-800">
+              {post.type.replace('_', ' ')}
+            </span>
+            <h1 className="text-3xl sm:text-4xl font-extrabold mt-5 mb-3 text-slate-800 dark:text-white tracking-tight leading-tight">{post.title}</h1>
+            <p className="text-slate-700 dark:text-slate-300 font-medium">
+              {post.metadata?.university} • {post.metadata?.branch} • Semester {post.metadata?.semester}
+            </p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5">
+              {post.metadata?.subject} • {post.metadata?.topic}
+            </p>
+          </div>
 
-           {/* Content Body */}
-           <div className="p-8 md:p-12 space-y-8">
-              <div className="space-y-4">
-                 <div className="flex items-center gap-2">
-                    <span className="px-3 py-1 bg-violet-500/10 text-violet-500 text-[10px] font-black uppercase tracking-widest rounded-lg">
-                        {post.type}
-                    </span>
-                    <span className="px-3 py-1 bg-indigo-500/10 text-indigo-500 text-[10px] font-black uppercase tracking-widest rounded-lg">
-                        Sem {post.metadata?.semester}
-                    </span>
-                 </div>
-                 <h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight leading-tight">
-                    {post.title}
-                 </h2>
-                 <div className="flex items-center gap-4 text-sm text-slate-500 font-medium">
-                    <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-white/5 px-3 py-1.5 rounded-xl border border-gray-100 dark:border-white/10">
-                        <BookOpen size={14} className="text-violet-500" />
-                        <span>{post.metadata?.subject}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-white/5 px-3 py-1.5 rounded-xl border border-gray-100 dark:border-white/10">
-                        <Shield size={14} className="text-emerald-500" />
-                        <span>{post.metadata?.topic}</span>
-                    </div>
-                 </div>
-              </div>
-
-              {/* Resource Content Section */}
-              <div className="bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/[0.08] rounded-[32px] p-8 md:p-12">
-                 <div className="prose prose-slate dark:prose-invert prose-violet max-w-none 
-                    prose-headings:font-black prose-headings:tracking-tight
-                    dark:prose-p:text-slate-300 dark:prose-li:text-slate-300
-                    prose-p:leading-relaxed prose-li:leading-relaxed
-                    prose-strong:text-violet-600 dark:prose-strong:text-violet-400">
-                    <ReactMarkdown>
-                        {mdContent || "No detailed content available for this resource."}
-                    </ReactMarkdown>
-                 </div>
-              </div>
-
-              {/* Interactions Footer */}
-              <div className="flex items-center justify-between pt-8 border-t border-gray-100 dark:border-white/[0.06]">
-                 <div className="flex items-center gap-6">
-                    <div className="flex items-center gap-2 p-1 bg-gray-50 dark:bg-white/[0.04] rounded-2xl border border-gray-100 dark:border-white/[0.08]">
-                       <button 
-                         onClick={() => handleVote('upvote')} 
-                         className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-black text-slate-500 hover:bg-emerald-500/10 hover:text-emerald-500 transition-all uppercase tracking-widest"
-                       >
-                         <ThumbsUp size={18} /> {post.upvotes || 0}
-                       </button>
-                       <div className="w-[1px] h-4 bg-gray-200 dark:bg-white/10" />
-                       <button 
-                         onClick={() => handleVote('downvote')} 
-                         className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-black text-slate-500 hover:bg-rose-500/10 hover:text-rose-500 transition-all uppercase tracking-widest"
-                       >
-                         <ThumbsDown size={18} /> {post.downvotes || 0}
-                       </button>
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-500">
-                       <MessageCircle size={18} />
-                       <span className="text-xs font-black uppercase tracking-widest">{post.commentCount || 0} Comments</span>
-                    </div>
-                 </div>
-                 <button className="flex items-center gap-2 px-6 py-3 bg-violet-600 text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl shadow-lg shadow-violet-500/20 hover:scale-105 active:scale-95 transition-all">
-                    <Share2 size={16} /> Share Post
-                 </button>
-              </div>
-           </div>
-        </article>
-
-        {/* ── Comments Section ── */}
-        <section className="space-y-6">
-           <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.3em] flex items-center gap-3">
-              Discussion Hub <div className="h-[1px] flex-1 bg-gray-200 dark:bg-white/[0.06]" />
-           </h3>
-
-           {/* Comment Form */}
-           <div className="bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] rounded-[32px] p-2 flex items-center gap-2 shadow-xl shadow-black/5 dark:shadow-none focus-within:ring-2 focus-within:ring-violet-500/20 transition-all">
-              <div className="w-10 h-10 min-w-[40px] rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white text-[10px] font-black uppercase ml-1">
-                 {user?.name?.charAt(0) || 'U'}
-              </div>
-              <input 
-                 value={newComment}
-                 onChange={(e) => setNewComment(e.target.value)}
-                 placeholder="Share your thoughts or ask a question..."
-                 className="flex-1 bg-transparent border-none outline-none text-sm font-medium px-4 py-3 dark:text-white placeholder:text-slate-500"
-              />
-              <button 
-                 onClick={handleAddComment}
-                 disabled={!newComment.trim() || isSubmitting}
-                 className="p-3 bg-violet-600 text-white rounded-2xl shadow-lg shadow-violet-500/20 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 transition-all"
+          <div className="flex flex-wrap items-center gap-3 mb-10 pb-6 border-b border-slate-100 dark:border-slate-800/60">
+            <button
+              onClick={() => handleVote('upvote')}
+              className="flex items-center gap-2 px-5 py-2.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/40 text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 border border-slate-200 dark:border-slate-700 font-bold transition-colors"
+            >
+              <ThumbsUp size={18} />
+              {post.upvotes}
+            </button>
+            <button
+              onClick={() => handleVote('downvote')}
+              className="flex items-center gap-2 px-5 py-2.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-900/40 text-slate-700 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 border border-slate-200 dark:border-slate-700 font-bold transition-colors"
+            >
+              <ThumbsDown size={18} />
+              {post.downvotes}
+            </button>
+            {isAuthenticated && (
+              <button
+                onClick={() => setShowCloneModal(true)}
+                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 dark:bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-bold hover:shadow-lg hover:shadow-blue-500/30 border border-transparent transition-all ml-auto sm:ml-0"
               >
-                 {isSubmitting ? <Clock size={18} className="animate-spin" /> : <Send size={18} />}
+                <Copy size={18} />
+                <span className="hidden sm:inline">Clone to Workspace</span>
+                <span className="sm:hidden">Clone</span>
               </button>
-           </div>
+            )}
+          </div>
 
-           {/* Comment List */}
-           <div className="space-y-4">
-              {comments.map((comment) => (
-                 <Comment key={comment._id} comment={comment} />
-              ))}
-              
-              {comments.length === 0 && (
-                 <div className="text-center py-20 bg-gray-50 dark:bg-white/[0.02] border border-dashed border-gray-200 dark:border-white/10 rounded-[40px]">
-                    <div className="w-16 h-16 bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl flex items-center justify-center text-slate-400 mx-auto mb-4">
-                       <MessageSquare size={24} />
+          <div className="prose max-w-none mb-8">
+            {(() => {
+              // Ensure content is an object
+              let content = post.content;
+              if (typeof content === 'string') {
+                // Check if it's a Cloudinary file URL
+                if (content.includes('[Cloudinary File]')) {
+                  const urlMatch = content.match(/URL:\s*(https?:\/\/[^\s]+)/);
+                  const publicIdMatch = content.match(/Public ID:\s*([^\s]+)/);
+                  if (urlMatch) {
+                    const fileUrl = urlMatch[1];
+                    // Check if it's a PDF - Cloudinary raw files or URLs with .pdf
+                    const isPDF = fileUrl.toLowerCase().includes('.pdf') || 
+                                 fileUrl.includes('format=pdf') || 
+                                 fileUrl.includes('resource_type=raw') ||
+                                 (publicIdMatch && publicIdMatch[1].toLowerCase().endsWith('.pdf'));
+                    
+                    // For Cloudinary PDFs, ensure the URL is properly formatted
+                    // Cloudinary raw files (PDFs) can be viewed directly
+                    let pdfUrl = fileUrl;
+                    
+                    // If it's a Cloudinary URL but doesn't have .pdf extension, try to add it
+                    if (isPDF && fileUrl.includes('res.cloudinary.com') && !fileUrl.includes('.pdf')) {
+                      // Cloudinary raw files should work as-is, but we can try adding format
+                      pdfUrl = fileUrl;
+                    }
+                    
+                    return (
+                      <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                        <div className="flex items-center gap-3 mb-4">
+                          <FileText size={24} className="text-blue-600" />
+                          <div>
+                            <h3 className="font-semibold text-gray-800">File Attachment</h3>
+                            <p className="text-sm text-gray-500">Cloudinary file uploaded</p>
+                          </div>
+                        </div>
+                        {isPDF ? (
+                          <div className="space-y-3">
+                            {/* Try iframe first, fallback to object tag */}
+                            <div className="w-full h-96 border border-gray-300 rounded-lg overflow-hidden">
+                              <iframe
+                                src={`${pdfUrl}#toolbar=0`}
+                                className="w-full h-full"
+                                title="PDF Viewer"
+                                type="application/pdf"
+                                onError={(e) => {
+                                  // If iframe fails, try object tag
+                                  e.target.style.display = 'none';
+                                  const objectTag = document.createElement('object');
+                                  objectTag.data = pdfUrl;
+                                  objectTag.type = 'application/pdf';
+                                  objectTag.className = 'w-full h-full';
+                                  objectTag.style.display = 'block';
+                                  e.target.parentElement.appendChild(objectTag);
+                                }}
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => window.open(fileUrl, '_blank')}
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                              >
+                                <Eye size={18} />
+                                Open in New Tab
+                              </button>
+                              <a
+                                href={fileUrl}
+                                download
+                                className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                              >
+                                <Download size={18} />
+                                Download PDF
+                              </a>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => window.open(fileUrl, '_blank')}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                          >
+                            <Eye size={18} />
+                            View File
+                          </button>
+                        )}
+                      </div>
+                    );
+                  }
+                }
+                // Check if content is a direct URL
+                if (content.startsWith('http://') || content.startsWith('https://')) {
+                  const isPDF = content.toLowerCase().endsWith('.pdf') || content.includes('.pdf') || content.includes('format=pdf');
+                  
+                  return (
+                    <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                      <div className="flex items-center gap-3 mb-4">
+                        <FileText size={24} className="text-blue-600" />
+                        <div>
+                          <h3 className="font-semibold text-gray-800">File Attachment</h3>
+                          <p className="text-sm text-gray-500">External file link</p>
+                        </div>
+                      </div>
+                      {isPDF ? (
+                        <div className="space-y-3">
+                          <iframe
+                            src={content}
+                            className="w-full h-96 border border-gray-300 rounded-lg"
+                            title="PDF Viewer"
+                          />
+                          <button
+                            onClick={() => window.open(content, '_blank')}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                          >
+                            <Eye size={18} />
+                            Open in New Tab
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => window.open(content, '_blank')}
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          <Eye size={18} />
+                          View File
+                        </button>
+                      )}
                     </div>
-                    <p className="text-xs font-black text-slate-500 uppercase tracking-widest">Be the first to start the conversation!</p>
-                 </div>
-              )}
-           </div>
-        </section>
+                  );
+                }
+                try {
+                  content = JSON.parse(content);
+                } catch (e) {
+                  // Try to extract JSON from string
+                  const jsonMatch = content.match(/\{[\s\S]*\}/);
+                  if (jsonMatch) {
+                    try {
+                      content = JSON.parse(jsonMatch[0]);
+                    } catch (e2) {
+                      return <pre className="whitespace-pre-wrap bg-gray-50 p-4 rounded">{content}</pre>;
+                    }
+                  } else {
+                    return <pre className="whitespace-pre-wrap bg-gray-50 p-4 rounded">{content}</pre>;
+                  }
+                }
+              }
 
+              // Render based on content structure
+              if (post.type === 'ppt' && content.slides) {
+                return (
+                  <div className="space-y-6">
+                    {content.slides.map((slide, index) => (
+                      <div key={index} className="border-l-4 border-purple-500 dark:border-purple-400 pl-6 py-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
+                        <h3 className="text-xl font-bold mb-3 text-slate-800 dark:text-slate-100">Slide {index + 1}: {slide.title}</h3>
+                        {slide.bullets && slide.bullets.length > 0 && (
+                          <ul className="list-disc list-inside space-y-2 text-slate-700 dark:text-slate-300">
+                            {slide.bullets.map((bullet, bulletIndex) => (
+                              <li key={bulletIndex}>{bullet}</li>
+                            ))}
+                          </ul>
+                        )}
+                        {slide.speakerNotes && (
+                          <div className="mt-4 p-4 bg-white dark:bg-slate-700/40 rounded-xl border border-slate-200 dark:border-slate-600">
+                            <p className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Speaker Notes:</p>
+                            <p className="text-slate-700 dark:text-slate-300">{slide.speakerNotes}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                );
+              } else if (content.sections && Array.isArray(content.sections)) {
+                return (
+                  <div className="space-y-6">
+                    {content.sections.map((section, index) => (
+                      <div key={index} className="border-l-4 border-blue-500 dark:border-blue-400 pl-6 py-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
+                        <h3 className="text-xl font-bold mb-3 text-slate-800 dark:text-slate-100">{section.title}</h3>
+                        <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">{section.content}</p>
+                      </div>
+                    ))}
+                  </div>
+                );
+              } else if (content.questions && Array.isArray(content.questions)) {
+                return (
+                  <div className="space-y-6">
+                    {content.questions.map((question, index) => (
+                      <div key={index} className="border-l-4 border-emerald-500 dark:border-emerald-400 pl-6 py-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
+                        <div className="flex items-start gap-3 mb-3">
+                          <span className="text-xl font-black text-emerald-600 dark:text-emerald-400">Q{index + 1}.</span>
+                          <p className="text-lg font-bold text-slate-800 dark:text-slate-100 flex-1">{question.question}</p>
+                        </div>
+                        {question.answer && (
+                          <div className="ml-8 mt-4 p-4 bg-white dark:bg-slate-700/40 rounded-xl border border-slate-200 dark:border-slate-600">
+                            <p className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">Answer:</p>
+                            <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{question.answer}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                );
+              } else if (content.keyPoints || content.formulae || content.definitions) {
+                return (
+                  <div className="space-y-6">
+                    {content.keyPoints && content.keyPoints.length > 0 && (
+                      <div className="bg-slate-50 dark:bg-slate-800/40 p-5 rounded-xl border-l-4 border-amber-500 dark:border-amber-500">
+                        <h3 className="text-xl font-bold mb-3 text-slate-800 dark:text-slate-100">Key Points</h3>
+                        <ul className="list-disc list-inside space-y-2 text-slate-700 dark:text-slate-300">
+                          {content.keyPoints.map((point, index) => (
+                            <li key={index}>{point}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {content.formulae && content.formulae.length > 0 && (
+                      <div className="bg-slate-50 dark:bg-slate-800/40 p-5 rounded-xl border-l-4 border-indigo-500 dark:border-indigo-500">
+                        <h3 className="text-xl font-bold mb-3 text-slate-800 dark:text-slate-100">Formulae</h3>
+                        <ul className="list-disc list-inside space-y-2 text-slate-700 dark:text-slate-300">
+                          {content.formulae.map((formula, index) => (
+                            <li key={index}>{formula}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {content.definitions && content.definitions.length > 0 && (
+                      <div className="bg-slate-50 dark:bg-slate-800/40 p-5 rounded-xl border-l-4 border-blue-500 dark:border-blue-500">
+                        <h3 className="text-xl font-bold mb-3 text-slate-800 dark:text-slate-100">Definitions</h3>
+                        <ul className="list-disc list-inside space-y-2 text-slate-700 dark:text-slate-300">
+                          {content.definitions.map((definition, index) => (
+                            <li key={index}>{definition}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                );
+              } else {
+                return (
+                  <div className="bg-slate-50 dark:bg-slate-800/40 p-5 rounded-xl">
+                    <pre className="whitespace-pre-wrap text-sm text-slate-700 dark:text-slate-300 font-mono">{JSON.stringify(content, null, 2)}</pre>
+                  </div>
+                );
+              }
+            })()}
+          </div>
+
+          {/* Comments */}
+          <div className="border-t border-slate-100 dark:border-slate-800/60 pt-8 mt-10">
+            <h2 className="text-2xl font-bold mb-6 text-slate-800 dark:text-slate-100">Comments</h2>
+            {isAuthenticated && (
+              <form onSubmit={handleComment} className="mb-8 p-5 bg-slate-50 dark:bg-slate-800/30 rounded-2xl border border-slate-100 dark:border-slate-800">
+                <textarea
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  placeholder="Share your thoughts..."
+                  rows="3"
+                  className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-slate-800 dark:text-slate-100 placeholder-slate-400"
+                />
+                <button
+                  type="submit"
+                  className="bg-blue-600 text-white px-6 py-2.5 font-bold rounded-xl hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/20 transition-all font-medium"
+                >
+                  Post Comment
+                </button>
+              </form>
+            )}
+            <div className="space-y-4">
+              {comments.map((comment) => (
+                <div key={comment._id} className="bg-slate-50 dark:bg-slate-800/40 p-5 rounded-xl border border-slate-100 dark:border-slate-700/50 flex flex-col">
+                  <p className="font-bold text-slate-800 dark:text-slate-200 mb-1">{comment.userId?.name || 'Anonymous'}</p>
+                  <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{comment.content}</p>
+                  <p className="text-xs font-medium text-slate-400 dark:text-slate-500 mt-3 pt-3 border-t border-slate-200 dark:border-slate-700/50">
+                    {new Date(comment.createdAt).toLocaleString()}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
-    </DashboardLayout>
+    {showCloneModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-100 dark:border-slate-800 w-full max-w-md scale-100 transform transition-all duration-300">
+            <h2 className="text-2xl font-bold mb-3 text-slate-800 dark:text-slate-100">Clone to Workspace</h2>
+            <p className="text-slate-600 dark:text-slate-400 mb-6 font-medium">
+              Select a subject to clone this content into your workspace.
+            </p>
+            <input
+              type="text"
+              value={subjectId}
+              onChange={(e) => setSubjectId(e.target.value)}
+              placeholder="Enter Subject ID..."
+              className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl mb-6 focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-slate-800 dark:text-slate-100 font-medium placeholder-slate-400"
+            />
+            <div className="flex gap-4">
+              <button
+                onClick={() => setShowCloneModal(false)}
+                className="flex-1 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold py-3 px-4 rounded-xl transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleClone}
+                className="flex-1 bg-blue-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/20 transition-all"
+              >
+                Clone Content
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
 export default PostDetail;
+

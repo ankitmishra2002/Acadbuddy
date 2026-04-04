@@ -1,275 +1,219 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Plus, BookOpen, Trash2, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Plus, Search, Filter, BookOpen, 
-  MoreVertical, Calendar, ArrowRight,
-  TrendingUp, Layers, CheckCircle2,
-  Clock, Star, GraduationCap, X,
-  Trash2
-} from 'lucide-react';
-import DashboardLayout from '../components/layout/DashboardLayout';
-import useSubjectStore from '../store/subjectStore';
-import { useNavigate } from 'react-router-dom';
-
-const SubjectCard = ({ subject, delay, onDelete }) => {
-  const navigate = useNavigate();
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.5 }}
-      whileHover={{ y: -6 }}
-      className="group bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] rounded-3xl p-5 shadow-sm dark:shadow-none hover:shadow-xl dark:hover:bg-white/[0.06] transition-all"
-    >
-      <div className="flex justify-between items-start mb-6">
-        <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${subject.color} flex items-center justify-center shadow-lg shadow-black/10`}>
-          <subject.icon size={24} className="text-white" />
-        </div>
-        <div className="relative group/menu">
-          <button className="p-2 rounded-xl text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
-            <MoreVertical size={18} />
-          </button>
-          <div className="absolute right-0 top-full mt-2 w-32 bg-white dark:bg-[#1a1f35] border border-gray-200 dark:border-white/10 rounded-xl shadow-xl py-1 opacity-0 group-hover/menu:opacity-100 invisible group-hover/menu:visible transition-all z-20">
-            <button 
-              onClick={() => onDelete(subject._id)}
-              className="w-full px-4 py-2 text-left text-xs font-bold text-red-500 hover:bg-red-500/10 flex items-center gap-2"
-            >
-              <Trash2 size={14} />
-              Delete
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-1 mb-5">
-        <h3 className="text-lg font-black text-gray-900 dark:text-white leading-tight">
-          {subject.name}
-        </h3>
-        <p className="text-gray-500 dark:text-slate-400 text-xs font-medium uppercase tracking-wider">
-          {subject.code}
-        </p>
-      </div>
-
-      <div className="space-y-4">
-        <div className="flex items-center justify-between text-xs font-bold">
-          <span className="text-gray-500 dark:text-slate-400">Preparation Progress</span>
-          <span className="text-violet-500">{subject.progress}%</span>
-        </div>
-        <div className="h-2 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
-          <motion.div 
-            initial={{ width: 0 }}
-            animate={{ width: `${subject.progress}%` }}
-            transition={{ duration: 1.2, delay: delay + 0.3 }}
-            className={`h-full bg-gradient-to-r ${subject.color}`} 
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 mt-6">
-        <div className="bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.06] rounded-2xl p-3 flex flex-col items-center justify-center text-center">
-          <Layers size={14} className="text-violet-500 mb-1" />
-          <span className="text-gray-900 dark:text-white text-xs font-bold">{subject.units} Units</span>
-          <span className="text-[10px] text-gray-400 dark:text-slate-500 uppercase tracking-tighter leading-none">Content</span>
-        </div>
-        <div className="bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.06] rounded-2xl p-3 flex flex-col items-center justify-center text-center">
-          <TrendingUp size={14} className="text-emerald-500 mb-1" />
-          <span className="text-gray-900 dark:text-white text-xs font-bold">{subject.questions} PYQs</span>
-          <span className="text-[10px] text-gray-400 dark:text-slate-500 uppercase tracking-tighter leading-none">Analysis</span>
-        </div>
-      </div>
-
-      <button 
-        onClick={() => navigate(`/subjects/${subject._id}`)}
-        className="mt-5 w-full py-3.5 bg-gray-900 dark:bg-white text-white dark:text-[#0c1020] font-black text-sm rounded-2xl flex items-center justify-center gap-2 group-hover:bg-violet-600 group-hover:text-white transition-all shadow-lg hover:shadow-violet-600/20"
-      >
-        Open Workspace
-        <ArrowRight size={16} />
-      </button>
-    </motion.div>
-  );
-};
-
+import api from '../services/api';
 
 const Subjects = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newCode, setNewCode] = useState('');
-  
-  const { subjects, fetchSubjects, addSubject, deleteSubject, loading } = useSubjectStore();
+  const [subjects, setSubjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [formData, setFormData] = useState({ name: '', code: '' });
 
   useEffect(() => {
     fetchSubjects();
   }, []);
 
-  const handleAddSubject = async (e) => {
-    e.preventDefault();
-    if (!newName || !newCode) return;
-    const result = await addSubject(newName, newCode);
-    if (result.success) {
-      setNewName('');
-      setNewCode('');
-      setIsModalOpen(false);
+  const fetchSubjects = async () => {
+    try {
+      const response = await api.get('/subjects');
+      setSubjects(response.data);
+    } catch (error) {
+      console.error('Failed to fetch subjects:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const filteredSubjects = subjects.filter(s => 
-    s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.code.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post('/subjects', formData);
+      setShowModal(false);
+      setFormData({ name: '', code: '' });
+      fetchSubjects();
+    } catch (error) {
+      alert('Failed to create subject');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('Are you sure you want to delete this subject?')) return;
+    try {
+      await api.delete(`/subjects/${id}`);
+      fetchSubjects();
+    } catch (error) {
+      alert('Failed to delete subject');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+  
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } }
+  };
 
   return (
-    <DashboardLayout>
-      <div className="space-y-10">
-        
-        {/* ── Header ── */}
-        <section className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="space-y-2">
-            <h1 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white tracking-tight">
-              Manage <span className="text-violet-500">Subjects</span>
-            </h1>
-            <p className="text-gray-500 dark:text-slate-400 font-medium">
-              Real-time synchronization with your academic curriculum.
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <div className="relative flex-1 md:w-72">
-              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input 
-                type="text" 
-                placeholder="Search by name or code..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] rounded-2xl pl-12 pr-4 py-3 text-sm focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none transition-all dark:text-white"
-              />
-            </div>
-            <button className="p-3 bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] rounded-2xl text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-white/10 transition-all">
-              <Filter size={18} />
-            </button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setIsModalOpen(true)}
-              className="px-6 py-3 bg-violet-600 text-white font-black text-sm rounded-2xl flex items-center gap-2.5 shadow-lg shadow-violet-500/30 whitespace-nowrap"
-            >
-              <Plus size={18} />
-              Add Subject
-            </motion.button>
-          </div>
-        </section>
+    <motion.div 
+      initial="hidden"
+      animate="show"
+      variants={containerVariants}
+      className="space-y-6 sm:space-y-8 pb-8"
+    >
+      <motion.div variants={itemVariants} className="flex justify-between items-center px-1">
+        <h1 className="text-4xl sm:text-5xl font-black bg-clip-text text-transparent bg-gradient-to-br from-indigo-700 via-blue-700 to-slate-800 dark:from-indigo-400 dark:via-blue-400 dark:to-white tracking-tighter pb-1 drop-shadow-sm">
+          Subjects
+        </h1>
+        <button
+          onClick={() => setShowModal(true)}
+          className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-2.5 rounded-xl hover:shadow-lg hover:shadow-blue-500/30 transition-all transform hover:-translate-y-0.5 flex items-center gap-2 font-medium"
+        >
+          <Plus size={20} />
+          <span className="hidden sm:inline">Add Subject</span>
+        </button>
+      </motion.div>
 
-        {/* ── Subject Grid ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          <AnimatePresence mode='popLayout'>
-            {filteredSubjects.map((subject, i) => (
-              <SubjectCard 
-                key={subject._id} 
-                subject={subject} 
-                delay={i * 0.1} 
-                onDelete={deleteSubject}
-              />
-            ))}
-          </AnimatePresence>
-        </div>
-
-        {/* ── Empty State ── */}
-        {filteredSubjects.length === 0 && !loading && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-24 bg-white/50 dark:bg-white/[0.02] rounded-[40px] border-2 border-dashed border-gray-200 dark:border-white/[0.06] backdrop-blur-sm"
+      {subjects.length === 0 ? (
+        <motion.div variants={itemVariants} className="flex flex-col items-center justify-center py-16 px-4 bg-slate-50 dark:bg-slate-800/50 border-2 border-dashed border-slate-200 rounded-[2rem] text-center">
+          <div className="w-20 h-20 bg-blue-50 text-blue-300 rounded-full flex items-center justify-center mb-6 shadow-inner">
+            <BookOpen size={40} />
+          </div>
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">No subjects configured</h3>
+          <p className="text-slate-500 dark:text-slate-400 max-w-sm mb-6">Create your first subject to start generating AI study notes, exams, and revision materials.</p>
+          <button
+            onClick={() => setShowModal(true)}
+            className="bg-white border border-slate-200 text-slate-700 dark:text-slate-300 dark:text-slate-200 px-6 py-3 rounded-xl hover:bg-slate-50 dark:bg-slate-800/50 hover:border-slate-300 dark:border-slate-600 transition-all font-medium flex items-center gap-2 shadow-sm"
           >
-            <div className="w-20 h-20 bg-gray-100 dark:bg-white/[0.06] rounded-full flex items-center justify-center mx-auto mb-6 text-gray-400">
-              <BookOpen size={40} />
-            </div>
-            <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2 tracking-tight">No subjects found</h3>
-            <p className="text-gray-500 dark:text-slate-400 font-medium">Try adjusting your search or add a new subject to get started.</p>
-            <button 
-              onClick={() => setIsModalOpen(true)}
-              className="mt-8 text-violet-500 font-black flex items-center gap-2 mx-auto hover:gap-3 transition-all"
+            <Plus size={18} className="text-blue-600" />
+            Add Your First Subject
+          </button>
+        </motion.div>
+      ) : (
+        <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {subjects.map((subject) => (
+            <motion.div 
+              variants={itemVariants}
+              key={subject._id} 
+              className="bg-white/80 dark:bg-slate-900/95 backdrop-blur-3xl border border-white dark:border-slate-800 p-6 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 group flex flex-col"
             >
-              Add your first subject <ArrowRight size={20} />
-            </button>
-          </motion.div>
-        )}
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-1 group-hover:text-blue-600 transition-colors">{subject.name}</h3>
+                  {subject.code && (
+                    <span className="inline-block text-xs font-semibold tracking-wider uppercase bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-md border border-blue-100 dark:border-blue-800">
+                      {subject.code}
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => handleDelete(subject._id)}
+                  className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-colors"
+                  title="Delete subject"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
+              
+              <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-700">
+                <Link
+                  to={`/subjects/${subject._id}`}
+                  className="flex items-center justify-between w-full bg-slate-50 dark:bg-slate-800/50 hover:bg-blue-50 group/btn text-slate-600 hover:text-blue-700 font-semibold px-5 py-3 rounded-xl transition-colors border border-transparent hover:border-blue-100"
+                >
+                  Open Workspace
+                  <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" />
+                </Link>
+              </div>
+            </motion.div>
+          ))}
+        </motion.div>
+      )}
 
-        {/* ── Add Subject Modal ── */}
-        <AnimatePresence>
-          {isModalOpen && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setIsModalOpen(false)}
-                className="absolute inset-0 bg-black/60 backdrop-blur-md"
-              />
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                className="w-full max-w-lg bg-white dark:bg-[#0c1020] rounded-[40px] border border-gray-200 dark:border-white/10 p-8 md:p-12 relative shadow-2xl overflow-hidden"
-              >
-                <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] bg-violet-500/10 blur-[80px] rounded-full" />
+      {/* Modal Overlay */}
+      <AnimatePresence>
+        {showModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowModal(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-white/95 backdrop-blur-3xl rounded-[2.5rem] p-8 shadow-2xl border border-white border-opacity-50"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-blue-50 rounded-xl text-blue-600">
+                  <BookOpen size={24} />
+                </div>
+                <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Add Subject</h2>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 dark:text-slate-200 mb-1.5 ml-1">
+                    Subject Name <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Data Structures & Algorithms"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all font-medium text-slate-800 dark:text-slate-100 placeholder:font-normal placeholder:text-slate-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 dark:text-slate-200 mb-1.5 ml-1">
+                    Subject Code <span className="text-slate-400 font-normal">(Optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. CS201"
+                    value={formData.code}
+                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all font-medium text-slate-800 dark:text-slate-100 placeholder:font-normal placeholder:text-slate-400 uppercase"
+                  />
+                </div>
                 
-                <div className="flex justify-between items-center mb-10 relative">
-                  <div>
-                    <h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">
-                      New <span className="text-violet-500">Subject</span>
-                    </h2>
-                    <p className="text-gray-500 dark:text-slate-400 font-medium text-sm mt-1">Add to your academic workspace</p>
-                  </div>
-                  <button 
-                    onClick={() => setIsModalOpen(false)}
-                    className="p-3 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors text-gray-400"
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="flex-1 bg-white border border-slate-200 text-slate-700 dark:text-slate-300 dark:text-slate-200 py-3 px-4 rounded-xl hover:bg-slate-50 dark:bg-slate-800/50 font-semibold transition-all"
                   >
-                    <X size={24} />
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-xl hover:shadow-lg hover:shadow-blue-500/30 font-semibold transition-all transform hover:-translate-y-0.5"
+                  >
+                    Create Subject
                   </button>
                 </div>
-
-                <form onSubmit={handleAddSubject} className="space-y-6 relative">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest ml-2">Subject Name</label>
-                    <input 
-                      type="text" 
-                      placeholder="e.g. Artificial Intelligence"
-                      value={newName}
-                      onChange={(e) => setNewName(e.target.value)}
-                      required
-                      className="w-full bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] rounded-2xl px-6 py-4 text-gray-900 dark:text-white font-medium outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all placeholder:text-gray-400 dark:placeholder:text-slate-600"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest ml-2">Subject Code</label>
-                    <input 
-                      type="text" 
-                      placeholder="e.g. CS-501"
-                      value={newCode}
-                      onChange={(e) => setNewCode(e.target.value)}
-                      required
-                      className="w-full bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] rounded-2xl px-6 py-4 text-gray-900 dark:text-white font-medium outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all placeholder:text-gray-400 dark:placeholder:text-slate-600"
-                    />
-                  </div>
-
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    type="submit"
-                    className="w-full py-5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-black text-lg rounded-2xl shadow-xl shadow-violet-500/30 flex items-center justify-center gap-3 mt-4"
-                  >
-                    <Plus size={24} />
-                    Create Subject
-                  </motion.button>
-                </form>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
-
-      </div>
-    </DashboardLayout>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };
 
