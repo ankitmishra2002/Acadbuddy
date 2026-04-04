@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ThumbsUp, MessageCircle, Eye, Plus, X, ArrowLeft, Cloud, Loader2, Trash2, Search, Filter, BookOpen } from 'lucide-react';
+import { ThumbsUp, MessageCircle, Eye, Plus, X, ArrowLeft, Cloud, Loader2, Trash2, Search, Filter, BookOpen, Check, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../services/api';
 import { Link } from 'react-router-dom';
@@ -344,27 +344,28 @@ const Community = () => {
       {/* Create Modal Overlay */}
       <AnimatePresence>
         {showCreateModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm shadow-2xl">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowCreateModal(false)}
-              className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+              className="absolute inset-0"
             />
             
             <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-2xl bg-white dark:bg-slate-900/95 backdrop-blur-3xl rounded-[2.5rem] p-6 sm:p-8 shadow-2xl border border-white border-opacity-50 max-h-[90vh] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent"
+              initial={{ opacity: 0, y: 100, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 100, scale: 0.95 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative w-full max-w-2xl bg-white dark:bg-slate-900 overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 rounded-t-[2.5rem] sm:rounded-[2.5rem] flex flex-col max-h-[90vh] sm:max-h-[85vh]"
             >
-              <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-100 dark:border-slate-700">
+              <div className="flex-shrink-0 flex justify-between items-center px-6 sm:px-8 py-5 border-b border-slate-100 dark:border-slate-800/60 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl z-20">
                 <div className="flex items-center gap-3">
-                  <div className="p-3 bg-emerald-50 rounded-xl text-emerald-600">
-                    <Plus size={24} />
+                  <div className="p-2.5 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl text-emerald-600 dark:text-emerald-400">
+                    <Plus size={22} strokeWidth={2.5} />
                   </div>
-                  <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Share with Community</h2>
+                  <h2 className="text-xl sm:text-2xl font-extrabold text-slate-800 dark:text-slate-100 tracking-tight">Share to Community</h2>
                 </div>
                 <button 
                   onClick={() => {
@@ -383,177 +384,187 @@ const Community = () => {
                       cloudinaryPublicId: null
                     });
                   }}
-                  className="p-2 bg-slate-100 hover:bg-rose-100 text-slate-500 dark:text-slate-400 hover:text-rose-600 rounded-xl transition-colors"
+                  className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-rose-100 dark:hover:bg-rose-900/30 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-full sm:rounded-xl transition-all"
                 >
-                  <X size={20} />
+                  <X size={20} strokeWidth={2.5} />
                 </button>
               </div>
 
-              <form onSubmit={handleCreatePost} className="space-y-5">
-                <div>
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5 ml-1">
-                      Post Title <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      required
-                      placeholder="e.g. Complete DSA Unit 2 Notes"
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all font-medium text-slate-800 dark:text-slate-100"
-                      value={formData.title}
-                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div className="flex-grow overflow-y-auto custom-scrollbar p-6 sm:p-8">
+                <form id="community-create-form" onSubmit={handleCreatePost} className="space-y-6">
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5 ml-1">
-                      Subject <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      required
-                      placeholder="e.g. Database Systems"
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all font-medium text-slate-800 dark:text-slate-100"
-                      value={formData.subject}
-                      onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5 ml-1">
-                      Topic <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      required
-                      placeholder="e.g. Normalization Forms"
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all font-medium text-slate-800 dark:text-slate-100"
-                      value={formData.topic}
-                      onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5 ml-1">
-                      Material Type <span className="text-rose-500">*</span>
-                   </label>
-                   <select
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all font-medium text-slate-800 dark:text-slate-100 appearance-none"
-                      value={formData.type}
-                      onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                    >
-                      {Object.entries(typeLabels).map(([k, v]) => (
-                        <option key={k} value={k}>{v}</option>
-                      ))}
-                    </select>
-                </div>
-
-                <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-2xl border border-dashed border-slate-300 dark:border-slate-600">
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">
-                    Upload Associated File <span className="text-slate-400 font-normal ml-1">(Optional)</span>
-                  </label>
-                  <div className="space-y-4">
-                    <div className="flex flex-col sm:flex-row gap-3">
+                      <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 ml-1">
+                        Post Title <span className="text-rose-500">*</span>
+                      </label>
                       <input
-                        type="file"
-                        accept=".pdf,.txt,.doc,.docx,.jpg,.jpeg,.png,.mp4,.avi,.mov,.mkv,.webm,.mp3,.wav,.m4v"
-                        onChange={(e) => {
-                          const selectedFile = e.target.files[0];
-                          if (selectedFile) {
-                            setFormData(prev => ({
-                              ...prev,
-                              file: selectedFile,
-                              cloudinaryUrl: null,
-                              cloudinaryPublicId: null
-                            }));
-                          }
-                        }}
-                        className="flex-1 block w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all cursor-pointer border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 focus:outline-none"
+                        required
+                        placeholder="e.g. Complete DSA Unit 2 Notes"
+                        className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 hover:border-emerald-400 dark:hover:border-emerald-600 rounded-2xl focus:outline-none focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 dark:focus:border-emerald-500 transition-all font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 shadow-sm"
+                        value={formData.title}
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                       />
-                      {formData.file && (
-                        <button
-                          type="button"
-                          onClick={() => handleCloudinaryUpload(formData.file)}
-                          disabled={uploadingToCloudinary}
-                          className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:shadow-lg hover:shadow-purple-500/30 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-all transform hover:-translate-y-0.5"
-                        >
-                          {uploadingToCloudinary ? (
-                            <>
-                              <Loader2 size={18} className="animate-spin" />
-                              Uploading...
-                            </>
-                          ) : (
-                            <>
-                              <Cloud size={18} />
-                              Cloud Upload
-                            </>
-                          )}
-                        </button>
-                      )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 ml-1">
+                        Subject <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        required
+                        placeholder="e.g. Database Systems"
+                        className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 hover:border-emerald-400 dark:hover:border-emerald-600 rounded-2xl focus:outline-none focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 shadow-sm"
+                        value={formData.subject}
+                        onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                      />
                     </div>
-                    {formData.cloudinaryUrl && (
-                      <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl shadow-sm">
-                        <div className="flex items-center justify-between mb-3">
-                          <p className="text-sm font-bold text-emerald-700 flex items-center gap-2">
-                            <Check size={16} className="bg-emerald-200 rounded-full p-0.5 text-emerald-800" /> 
-                            File successfully hosted on Cloudinary
-                          </p>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 ml-1">
+                        Topic <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        required
+                        placeholder="e.g. Normalization Forms"
+                        className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 hover:border-emerald-400 dark:hover:border-emerald-600 rounded-2xl focus:outline-none focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 shadow-sm"
+                        value={formData.topic}
+                        onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="relative">
+                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 ml-1">
+                        Material Type <span className="text-rose-500">*</span>
+                     </label>
+                     <div className="relative">
+                       <select
+                          className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 hover:border-emerald-400 dark:hover:border-emerald-600 rounded-2xl focus:outline-none focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-semibold text-slate-800 dark:text-slate-100 shadow-sm appearance-none cursor-pointer"
+                          value={formData.type}
+                          onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                        >
+                          {Object.entries(typeLabels).map(([k, v]) => (
+                            <option key={k} value={k} className="bg-white dark:bg-slate-800 font-semibold">{v}</option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 pointer-events-none" size={20} />
+                     </div>
+                  </div>
+
+                  <div className="bg-slate-50 dark:bg-slate-800/30 p-5 rounded-2xl border border-dashed border-slate-300 dark:border-slate-600/60 hover:border-slate-400 dark:hover:border-slate-500 transition-colors">
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-3">
+                      Upload Associated File <span className="text-slate-400 font-normal ml-1">(Optional)</span>
+                    </label>
+                    <div className="space-y-4">
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <input
+                          type="file"
+                          accept=".pdf,.txt,.doc,.docx,.jpg,.jpeg,.png,.mp4,.avi,.mov,.mkv,.webm,.mp3,.wav,.m4v"
+                          onChange={(e) => {
+                            const selectedFile = e.target.files[0];
+                            if (selectedFile) {
+                              setFormData(prev => ({
+                                ...prev,
+                                file: selectedFile,
+                                cloudinaryUrl: null,
+                                cloudinaryPublicId: null
+                              }));
+                            }
+                          }}
+                          className="flex-1 block w-full text-sm text-slate-500 dark:text-slate-400 file:mr-3 file:py-2.5 file:px-5 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-blue-100 dark:file:bg-blue-900/50 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-200 dark:hover:file:bg-blue-800/80 transition-all cursor-pointer border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 focus:outline-none shadow-sm"
+                        />
+                        {formData.file && (
                           <button
                             type="button"
-                            onClick={() => {
-                              const isPDF = formData.cloudinaryUrl.toLowerCase().includes('.pdf') || formData.cloudinaryUrl.includes('format=pdf');
-                              if (isPDF) {
-                                window.open(formData.cloudinaryUrl, '_blank');
-                              } else {
-                                window.open(formData.cloudinaryUrl, '_blank');
-                              }
-                            }}
-                            className="px-3 py-1.5 bg-white border border-emerald-200 text-emerald-700 text-xs font-bold rounded-lg hover:bg-emerald-100 flex items-center gap-1.5 transition-colors shadow-sm"
+                            onClick={() => handleCloudinaryUpload(formData.file)}
+                            disabled={uploadingToCloudinary}
+                            className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed font-bold transition-all transform hover:-translate-y-0.5"
                           >
-                            <Eye size={14} /> View File
+                            {uploadingToCloudinary ? (
+                              <>
+                                <Loader2 size={18} className="animate-spin" />
+                                Uploading...
+                              </>
+                            ) : (
+                              <>
+                                <Cloud size={18} />
+                                Cloud Upload
+                              </>
+                            )}
                           </button>
-                        </div>
-                        {formData.file && formData.file.type === 'application/pdf' && (
-                          <div className="mt-3 rounded-lg overflow-hidden border border-emerald-200 shadow-inner">
-                            <iframe
-                              src={formData.cloudinaryUrl}
-                              className="w-full h-48 bg-white"
-                              title="PDF Preview"
-                            />
-                          </div>
                         )}
                       </div>
-                    )}
-                    {formData.file && !formData.cloudinaryUrl && (
-                      <p className="text-sm font-medium text-slate-500 bg-white inline-block px-3 py-1.5 rounded-lg border border-slate-200">
-                        Selected: <span className="text-slate-800">{formData.file.name}</span> <span className="text-slate-400">({(formData.file.size / 1024).toFixed(2)} KB)</span>
-                      </p>
-                    )}
+                      {formData.cloudinaryUrl && (
+                        <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl shadow-sm">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                            <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+                              <Check size={16} className="bg-emerald-200 dark:bg-emerald-800 rounded-full p-0.5 text-emerald-800 dark:text-emerald-200" /> 
+                              File seamlessly hosted
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const isPDF = formData.cloudinaryUrl.toLowerCase().includes('.pdf') || formData.cloudinaryUrl.includes('format=pdf');
+                                if (isPDF) {
+                                  window.open(formData.cloudinaryUrl, '_blank');
+                                } else {
+                                  window.open(formData.cloudinaryUrl, '_blank');
+                                }
+                              }}
+                              className="px-4 py-1.5 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-800/80 text-emerald-700 dark:text-emerald-400 text-sm font-bold rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/30 flex items-center justify-center gap-2 transition-colors shadow-sm w-full sm:w-auto"
+                            >
+                              <Eye size={16} /> View Preview
+                            </button>
+                          </div>
+                          {formData.file && formData.file.type === 'application/pdf' && (
+                            <div className="mt-3 rounded-xl overflow-hidden border border-emerald-200 dark:border-emerald-800 shadow-inner">
+                              <iframe
+                                src={formData.cloudinaryUrl}
+                                className="w-full h-48 bg-white"
+                                title="PDF Preview"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {formData.file && !formData.cloudinaryUrl && (
+                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 inline-block px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm mt-1">
+                          File Selected: <span className="text-slate-800 dark:text-slate-200 font-bold ml-1">{formData.file.name}</span> <span className="text-slate-400 font-normal ml-1">({(formData.file.size / 1024).toFixed(2)} KB)</span>
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">
-                    Direct Content Entry <span className="text-slate-400 font-normal ml-1">{formData.cloudinaryUrl || formData.file ? '(Optional if file uploaded)' : ''}</span>
-                  </label>
-                  <textarea
-                    rows="4"
-                    placeholder="Provide additional details, text context, or link references here..."
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all font-medium text-slate-800 resize-y"
-                    value={formData.content}
-                    onChange={(e) =>
-                      setFormData({ ...formData, content: e.target.value })
-                    }
-                  />
-                </div>
-
-                <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center gap-4">
-                  {(!formData.cloudinaryUrl && !formData.file && !formData.content) && (
-                    <p className="text-xs font-semibold text-rose-500 w-full mb-2 sm:mb-0">
-                      * Please upload a file via Cloudinary or enter manual content above.
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 ml-1">
+                      Direct Content Entry <span className="text-slate-400 font-normal ml-1">{formData.cloudinaryUrl || formData.file ? '(Optional if file attached)' : ''}</span>
+                    </label>
+                    <textarea
+                      rows="5"
+                      placeholder="Discuss details, drop markdown, or paste reference links..."
+                      className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 hover:border-emerald-400 dark:hover:border-emerald-600 rounded-2xl focus:outline-none focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 shadow-sm resize-y"
+                      value={formData.content}
+                      onChange={(e) =>
+                        setFormData({ ...formData, content: e.target.value })
+                      }
+                    />
+                  </div>
+                </form>
+              </div>
+              
+              <div className="flex-shrink-0 px-6 sm:px-8 py-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-xl z-20 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  {(!formData.cloudinaryUrl && !formData.file && !formData.content) ? (
+                    <p className="text-sm font-bold text-rose-500 dark:text-rose-400 flex items-center gap-2">
+                       <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                       Content missing (upload file or type text)
                     </p>
+                  ) : (
+                    <div className="flex-1"></div>
                   )}
                   <button
                     type="submit"
+                    form="community-create-form"
                     disabled={submitting || (!formData.cloudinaryUrl && !formData.file && !formData.content)}
-                    className="w-full sm:w-auto ml-auto bg-gradient-to-r from-emerald-500 to-teal-600 disabled:from-slate-400 disabled:to-slate-400 disabled:cursor-not-allowed disabled:hover:translate-y-0 text-white py-3 px-8 rounded-xl hover:shadow-lg hover:shadow-emerald-500/30 font-bold transition-all transform hover:-translate-y-0.5 whitespace-nowrap"
+                    className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-600 disabled:from-slate-300 disabled:to-slate-300 dark:disabled:from-slate-700 dark:disabled:to-slate-700 disabled:cursor-not-allowed disabled:hover:-translate-y-0 text-white py-3.5 px-8 rounded-xl shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 font-extrabold text-base transition-all transform hover:-translate-y-0.5 whitespace-nowrap flex justify-center"
                   >
                     {submitting ? (
                       <span className="flex items-center justify-center gap-2">
@@ -561,8 +572,7 @@ const Community = () => {
                       </span>
                     ) : 'Publish to Community'}
                   </button>
-                </div>
-              </form>
+              </div>
             </motion.div>
           </div>
         )}
