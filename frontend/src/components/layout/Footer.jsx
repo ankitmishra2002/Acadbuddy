@@ -116,7 +116,7 @@ const Footer = () => {
               </a>
               . Want to make this project better or advance its features?{' '}
               <a 
-                href="https://github.com/bhutuklearning/AI-Academic-Assistant" 
+                href="https://github.com/ankitmishra2002/Acadbuddy" 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className="text-blue-400 hover:text-white transition-colors font-bold"
