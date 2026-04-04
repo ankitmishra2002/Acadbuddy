@@ -1,4 +1,7 @@
-import User from "../models/User.model.js"
+import User from '../models/User.model.js';
+import QuizAttempt from '../models/QuizAttempt.model.js';
+import Session from '../models/Session.model.js';
+import GeneratedContent from '../models/GeneratedContent.model.js';
 
 export const getUserProfile = async (req, res) => {
   try {
@@ -114,3 +117,4 @@ export const getRecentContent = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+

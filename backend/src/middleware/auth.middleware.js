@@ -1,4 +1,4 @@
-import User from '../models/User.js';
+import User from '../models/User.model.js';
 import { verifyAccessToken, verifyRefreshToken } from '../utils/generateToken.js';
 
 const extractToken = (req) => {
@@ -16,14 +16,14 @@ export const authenticateAccessToken = async (req, res, next) => {
       return res.status(401).json({ message: 'Access token missing' });
     }
     const decoded = verifyAccessToken(token);
-    
+
     // Check if user is blocked
     const user = await User.findById(decoded.userId);
     if (!user) {
-        return res.status(401).json({ message: 'User not found' });
+      return res.status(401).json({ message: 'User not found' });
     }
     if (user.status === 'blocked') {
-        return res.status(403).json({ message: 'Your account has been blocked by an administrator.' });
+      return res.status(403).json({ message: 'Your account has been blocked by an administrator.' });
     }
 
     req.userId = decoded.userId;
@@ -46,14 +46,14 @@ export const authenticateRefreshToken = async (req, res, next) => {
     }
 
     const decoded = verifyRefreshToken(token);
-    
+
     // Check if user is blocked
     const user = await User.findById(decoded.userId);
     if (!user) {
-        return res.status(401).json({ message: 'User not found' });
+      return res.status(401).json({ message: 'User not found' });
     }
     if (user.status === 'blocked') {
-        return res.status(403).json({ message: 'Your account has been blocked by an administrator.' });
+      return res.status(403).json({ message: 'Your account has been blocked by an administrator.' });
     }
 
     req.userId = decoded.userId;
