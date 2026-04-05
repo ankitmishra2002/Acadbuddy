@@ -14,9 +14,9 @@ const router = express.Router();
 router.get('/', authenticateAccessToken, getUserStyles);
 router.get('/defaults', authenticateAccessToken, getDefaultStyles);
 router.post('/', authenticateAccessToken, createStyle);
+router.put('/:id/activate', authenticateAccessToken, activateStyle);
 router.put('/:id', authenticateAccessToken, updateStyle);
 router.delete('/:id', authenticateAccessToken, deleteStyle);
-router.put('/:id/activate', authenticateAccessToken, activateStyle);
 
 export default router;
 
