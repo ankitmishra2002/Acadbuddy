@@ -134,22 +134,30 @@ const Dashboard = () => {
   }, [location.pathname]);
 
   useEffect(() => {
+    if (location.pathname !== '/dashboard') return;
+    let cancelled = false;
     const load = async () => {
+      setLoading(true);
       try {
         const [progressRes, contentRes] = await Promise.all([
           api.get('/users/progress'),
-          api.get('/users/recent-content?limit=6'),
+          api.get('/users/recent-content?limit=8'),
         ]);
-        setStats(progressRes.data);
-        setRecentContent(contentRes.data);
+        if (!cancelled) {
+          setStats(progressRes.data);
+          setRecentContent(contentRes.data);
+        }
       } catch (error) {
-        console.error('Failed to fetch dashboard data:', error);
+        if (import.meta.env.DEV) console.error('Failed to fetch dashboard data:', error);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
     load();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [location.pathname]);
 
   const greeting = useMemo(() => {
     const h = new Date().getHours();
@@ -184,12 +192,27 @@ const Dashboard = () => {
     const q = stats?.quiz?.totalQuestions ?? 0;
     const h = stats?.totalStudyTime ?? 0;
     const st = stats?.studyStreak ?? 0;
+    const gen = stats?.generatedContentCount ?? 0;
     return [
       { name: 'Quiz attempts', value: Math.max(q, 0.01) },
-      { name: 'Study time (×)', value: Math.max(h * 8, 0.01) },
-      { name: 'Streak days (×)', value: Math.max(st * 12, 0.01) },
+      { name: 'AI items built', value: Math.max(gen, 0.01) },
+      { name: 'Study hours (×4)', value: Math.max(h * 4, 0.01) },
+      { name: 'Streak (×12)', value: Math.max(st * 12, 0.01) },
     ];
   }, [stats]);
+
+  const formatStudyDisplay = (hours) => {
+    const h = Number(hours);
+    if (!Number.isFinite(h) || h <= 0) return '0h';
+    if (h < 1) return `${Math.max(1, Math.round(h * 60))}m`;
+    const rounded = Math.round(h * 10) / 10;
+    return Number.isInteger(rounded) ? `${rounded}h` : `${rounded.toFixed(1)}h`;
+  };
+
+  const practiceCount = stats?.practiceQuestions ?? stats?.quiz?.totalQuestions ?? 0;
+  const quizAttempts = stats?.quiz?.totalQuestions ?? 0;
+  const accuracyDisplay =
+    quizAttempts > 0 && stats?.quiz?.accuracy != null ? `${Math.round(stats.quiz.accuracy)}%` : '—';
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -269,20 +292,23 @@ const Dashboard = () => {
         {[
           {
             label: 'Questions',
-            value: stats?.quiz?.totalQuestions || 0,
+            hint: 'Quizzes + mock & review Qs',
+            value: practiceCount,
             icon: BookOpen,
             accent: 'from-sky-500 to-blue-600',
             bg: 'bg-sky-50 dark:bg-sky-950/40',
           },
           {
             label: 'Accuracy',
-            value: stats?.quiz?.accuracy ? `${Math.round(stats.quiz.accuracy)}%` : '0%',
+            hint: 'Live quizzes only',
+            value: accuracyDisplay,
             icon: TrendingUp,
             accent: 'from-emerald-500 to-teal-600',
             bg: 'bg-emerald-50 dark:bg-emerald-950/40',
           },
           {
             label: 'Streak',
+            hint: 'Days with study or AI activity',
             value: `${stats?.studyStreak || 0}d`,
             icon: Award,
             accent: 'from-amber-500 to-orange-600',
@@ -290,7 +316,8 @@ const Dashboard = () => {
           },
           {
             label: 'Study time',
-            value: stats?.totalStudyTime ? `${Math.round(stats.totalStudyTime)}h` : '0h',
+            hint: 'Focus sessions + quiz time',
+            value: formatStudyDisplay(stats?.totalStudyTime),
             icon: Clock,
             accent: 'from-violet-500 to-purple-600',
             bg: 'bg-violet-50 dark:bg-violet-950/40',
@@ -301,6 +328,7 @@ const Dashboard = () => {
             <div
               key={i}
               className="group relative overflow-hidden rounded-2xl border border-white/80 bg-white/80 p-4 sm:p-6 shadow-sm backdrop-blur-xl transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800/80 dark:bg-slate-900/70"
+              title={stat.hint}
             >
               <div
                 className={`pointer-events-none absolute inset-0 opacity-0 transition group-hover:opacity-[0.07] bg-gradient-to-br ${stat.accent}`}
@@ -312,6 +340,9 @@ const Dashboard = () => {
                   </p>
                   <p className="mt-1 text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tabular-nums">
                     {stat.value}
+                  </p>
+                  <p className="mt-1 text-[10px] font-medium text-slate-400 dark:text-slate-500 line-clamp-2">
+                    {stat.hint}
                   </p>
                 </div>
                 <div
@@ -396,7 +427,7 @@ const Dashboard = () => {
               <div>
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white">Activity balance</h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Quiz volume vs study time vs streak (scaled for the chart)
+                  Quiz attempts, AI items created, study hours, and streak (scaled so the ring stays readable)
                 </p>
               </div>
             </div>
@@ -418,7 +449,7 @@ const Dashboard = () => {
                     {activityPieData.map((_, i) => (
                       <Cell
                         key={i}
-                        fill={['#8b5cf6', '#06b6d4', '#f59e0b'][i % 3]}
+                        fill={['#8b5cf6', '#10b981', '#06b6d4', '#f59e0b'][i % 4]}
                       />
                     ))}
                   </Pie>
