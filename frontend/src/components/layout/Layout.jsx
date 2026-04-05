@@ -107,14 +107,14 @@ const Layout = ({ children }) => {
       {/* Absolute Ambient Animated Background */}
       <div className="fixed inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">
         {/* Light Mode Blobs */}
-        <div className="absolute top-0 -left-4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-[0.15] animate-blob dark:hidden"></div>
-        <div className="absolute top-0 -right-4 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-3xl opacity-[0.15] animate-blob animation-delay-2000 dark:hidden"></div>
-        <div className="absolute -bottom-8 left-20 w-72 h-72 bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-[0.15] animate-blob animation-delay-4000 dark:hidden"></div>
+        <div className="gpu-blob absolute top-0 -left-4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-2xl opacity-[0.12] animate-blob dark:hidden"></div>
+        <div className="gpu-blob absolute top-0 -right-4 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-2xl opacity-[0.12] animate-blob animation-delay-2000 dark:hidden"></div>
+        <div className="gpu-blob absolute -bottom-8 left-20 w-72 h-72 bg-indigo-300 rounded-full mix-blend-multiply filter blur-2xl opacity-[0.12] animate-blob animation-delay-4000 dark:hidden"></div>
         
         {/* Dark Mode Blobs */}
-        <div className="hidden dark:block absolute top-[10%] -left-10 w-96 h-96 bg-indigo-900/40 rounded-full mix-blend-screen filter blur-[100px] animate-blob"></div>
-        <div className="hidden dark:block absolute top-[20%] -right-10 w-96 h-96 bg-blue-900/30 rounded-full mix-blend-screen filter blur-[100px] animate-blob animation-delay-2000"></div>
-        <div className="hidden dark:block absolute -bottom-32 left-1/3 w-96 h-96 bg-purple-900/30 rounded-full mix-blend-screen filter blur-[100px] animate-blob animation-delay-4000"></div>
+        <div className="gpu-blob hidden dark:block absolute top-[10%] -left-10 w-80 h-80 bg-indigo-900/35 rounded-full mix-blend-screen filter blur-[80px] animate-blob"></div>
+        <div className="gpu-blob hidden dark:block absolute top-[20%] -right-10 w-80 h-80 bg-blue-900/28 rounded-full mix-blend-screen filter blur-[80px] animate-blob animation-delay-2000"></div>
+        <div className="gpu-blob hidden dark:block absolute -bottom-32 left-1/3 w-80 h-80 bg-purple-900/28 rounded-full mix-blend-screen filter blur-[80px] animate-blob animation-delay-4000"></div>
       </div>
 
       <div className="relative z-10 flex flex-col flex-1">

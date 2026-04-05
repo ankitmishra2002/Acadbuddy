@@ -24,18 +24,19 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    // Log error for debugging
-    if (error.response) {
-      console.error('API Error:', {
-        status: error.response.status,
-        statusText: error.response.statusText,
-        data: error.response.data,
-        url: error.config?.url
-      });
-    } else if (error.request) {
-      console.error('Network Error:', 'No response received from server. Is the backend running?');
-    } else {
-      console.error('Request Error:', error.message);
+    if (import.meta.env.DEV) {
+      if (error.response) {
+        console.error('API Error:', {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data,
+          url: error.config?.url
+        });
+      } else if (error.request) {
+        console.error('Network Error:', 'No response received from server. Is the backend running?');
+      } else {
+        console.error('Request Error:', error.message);
+      }
     }
 
     const originalRequest = error.config || {};

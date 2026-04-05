@@ -61,3 +61,15 @@ code {
 .animation-delay-4000 {
   animation-delay: 4s;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-blob,
+  .animate-gradient-x {
+    animation: none !important;
+  }
+}
+
+.gpu-blob {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}

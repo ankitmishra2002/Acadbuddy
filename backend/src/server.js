@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import axios from 'axios';
 import multer from 'multer';
 import rateLimit from "express-rate-limit";
@@ -54,6 +55,7 @@ const corsOptions = {
     optionsSuccessStatus: 204,
 };
 app.use(cors(corsOptions));
+app.use(compression());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
