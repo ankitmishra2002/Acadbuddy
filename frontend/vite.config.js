@@ -1,17 +1,8 @@
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 /** API calls use VITE_API_URL from .env (e.g. http://localhost:7000/api). No dev-server proxy — same model as Vercel production. */
-export default defineConfig(({ mode }) => {
-  if (mode === 'production') {
-    const env = loadEnv(mode, process.cwd(), '');
-    if (!env.VITE_API_URL?.trim()) {
-      console.warn(
-        '\n[Vite] VITE_API_URL is not set for this production build. On Vercel, set it to your Render API base (e.g. https://your-service.onrender.com/api).\n'
-      );
-    }
-  }
-
+export default defineConfig(() => {
   return {
     plugins: [react()],
     server: {
