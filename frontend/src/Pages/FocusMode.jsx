@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { X, Clock, Play, Pause, Square } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import api from '../services/api';
 import { recordFeatureVisit } from '../utils/recentActivity';
 import { resolveSlideBullets, resolveSpeakerNotes } from '../utils/pptSlideUtils';
@@ -161,7 +162,35 @@ const FocusMode = () => {
       </div>
 
       <div className="max-w-5xl mx-auto px-6 py-8">
-        {content?.type === 'ppt' && c?.slides ? (
+        {content?.type === 'smart_study' && c?.mode === 'summarize' && c?.summary ? (
+          <div className="prose prose-invert max-w-none">
+            <ReactMarkdown>{c.summary}</ReactMarkdown>
+          </div>
+        ) : content?.type === 'smart_study' && c?.mode === 'keywords' ? (
+          <div className="space-y-8">
+            {c.keywords?.length > 0 && (
+              <div>
+                <h2 className="text-2xl font-bold text-violet-300 mb-4">Keywords</h2>
+                <div className="flex flex-wrap gap-2">
+                  {c.keywords.map((kw, i) => (
+                    <span
+                      key={`${i}-${kw}`}
+                      className="inline-flex rounded-full border border-violet-500/50 bg-gray-800 px-3 py-1 text-sm text-violet-100"
+                    >
+                      {kw}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {c.excerpt && (
+              <div>
+                <h2 className="text-2xl font-bold text-gray-200 mb-4">Excerpt</h2>
+                <p className="text-lg text-gray-300 leading-relaxed whitespace-pre-wrap">{c.excerpt}</p>
+              </div>
+            )}
+          </div>
+        ) : content?.type === 'ppt' && c?.slides ? (
           <div className="space-y-8">
             {c.slides.map((slide, index) => {
               const bullets = resolveSlideBullets(slide);

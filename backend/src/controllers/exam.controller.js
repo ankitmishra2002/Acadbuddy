@@ -5,6 +5,7 @@ import User from '../models/User.model.js';
 import AnswerStyle from '../models/AnswerStyle.model.js';
 import Subject from '../models/Subject.model.js';
 import * as aiOrchestrator from '../services/aiOrchestrator.js';
+import { resolveSubjectForGeneratedContent } from '../utils/workspaceSubject.js';
 
 const buildContextData = (contexts) => ({
   syllabus: contexts.find((c) => c.type === 'syllabus')?.content || '',
@@ -183,7 +184,7 @@ export const generateRapidRevisionSheets = async (req, res) => {
 
 export const generateQuickRevision = async (req, res) => {
   try {
-    const { topicDescription, questionCount, extraDetails } = req.body;
+    const { topicDescription, questionCount, extraDetails, subjectId: bodySubjectId } = req.body;
     if (!topicDescription || !String(topicDescription).trim()) {
       return res.status(400).json({ message: 'Topic or context description is required' });
     }
@@ -213,28 +214,24 @@ export const generateQuickRevision = async (req, res) => {
       extraDetails: extraDetails != null ? String(extraDetails) : '',
     });
 
-    const subject = await Subject.findOne({ userId: req.userId }).sort({ createdAt: 1 });
+    const subject = await resolveSubjectForGeneratedContent(req.userId, bodySubjectId);
 
-    if (subject) {
-      const content = new GeneratedContent({
-        userId: req.userId,
-        subjectId: subject._id,
-        type: 'revision_sheet',
-        title: `Quick revision: ${subjectLabel.slice(0, 60)}`,
-        topic: subjectLabel.slice(0, 120),
-        content: generated,
-        styleProfileId: styleProfile._id,
-        contextUsed: [],
-        metadata: {
-          generatedAt: new Date(),
-          depth: 'quick_revision_prompt',
-        },
-      });
-      await content.save();
-      return res.status(201).json({ content: generated, savedContentId: content._id });
-    }
-
-    res.status(200).json({ content: generated, savedContentId: null });
+    const content = new GeneratedContent({
+      userId: req.userId,
+      subjectId: subject._id,
+      type: 'revision_sheet',
+      title: `Quick revision: ${subjectLabel.slice(0, 60)}`,
+      topic: subjectLabel.slice(0, 120),
+      content: generated,
+      styleProfileId: styleProfile._id,
+      contextUsed: [],
+      metadata: {
+        generatedAt: new Date(),
+        depth: 'quick_revision_prompt',
+      },
+    });
+    await content.save();
+    return res.status(201).json({ content: generated, savedContentId: content._id });
   } catch (error) {
     if (error.message?.includes('API key') || error.message?.includes('authentication failed')) {
       return res.status(500).json({

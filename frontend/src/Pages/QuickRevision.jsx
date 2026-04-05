@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Zap,
@@ -34,7 +35,27 @@ const QuickRevision = () => {
   const [extraDetails, setExtraDetails] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  const [savedContentId, setSavedContentId] = useState(null);
+  const [subjects, setSubjects] = useState([]);
+  const [subjectId, setSubjectId] = useState('');
   const [sessions, setSessions] = useState(() => loadQuickRevisionSessions());
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await api.get('/subjects');
+        if (!cancelled && Array.isArray(data)) {
+          setSubjects(data);
+        }
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const refreshSessions = useCallback(() => {
     setSessions(loadQuickRevisionSessions());
@@ -56,15 +77,20 @@ const QuickRevision = () => {
     }
     setLoading(true);
     setResult(null);
+    setSavedContentId(null);
     try {
-      const { data } = await api.post('/exam/quick-revision', {
+      const payload = {
         topicDescription: trimmed,
         questionCount,
         extraDetails: extraDetails.trim(),
-      });
+      };
+      if (subjectId) payload.subjectId = subjectId;
+
+      const { data } = await api.post('/exam/quick-revision', payload);
 
       const content = data.content;
       setResult(content);
+      setSavedContentId(data.savedContentId || null);
 
       const preview =
         Array.isArray(content?.keyPoints) && content.keyPoints.length
@@ -78,11 +104,11 @@ const QuickRevision = () => {
       });
       refreshSessions();
 
-      if (data.savedContentId) {
-        toast.success('Revision ready — also saved under your first subject.');
-      } else {
-        toast.success('Revision notes generated. Add a subject in Subjects to auto-save next time.');
-      }
+      toast.success(
+        data.savedContentId
+          ? 'Saved to your workspace — open Subjects → My Generated Content to view or share.'
+          : 'Revision notes generated.'
+      );
     } catch (err) {
       const msg =
         err.response?.data?.message || err.message || 'Could not generate revision notes';
@@ -135,6 +161,31 @@ const QuickRevision = () => {
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
               />
             </div>
+
+            {subjects.length > 0 && (
+              <div>
+                <label className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <BookOpen size={14} />
+                  Save to subject (optional)
+                </label>
+                <select
+                  value={subjectId}
+                  onChange={(e) => setSubjectId(e.target.value)}
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                >
+                  <option value="">Default — first subject or &quot;My workspace&quot;</option>
+                  {subjects.map((s) => (
+                    <option key={s._id} value={s._id}>
+                      {s.name}
+                      {s.code ? ` (${s.code})` : ''}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+                  Pick where this revision pack appears under My Generated Content.
+                </p>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
@@ -199,10 +250,20 @@ const QuickRevision = () => {
               variants={itemVariants}
               className="rounded-[2rem] border border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-slate-900/80 p-6 sm:p-8 space-y-8 shadow-inner"
             >
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <BookOpen size={20} className="text-amber-600 dark:text-amber-400" />
-                Your revision pack
-              </h2>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <BookOpen size={20} className="text-amber-600 dark:text-amber-400" />
+                  Your revision pack
+                </h2>
+                {savedContentId && (
+                  <Link
+                    to={`/content/${savedContentId}`}
+                    className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 dark:bg-amber-600 dark:hover:bg-amber-500"
+                  >
+                    Open saved copy
+                  </Link>
+                )}
+              </div>
 
               {Array.isArray(result.keyPoints) && result.keyPoints.length > 0 && (
                 <section>

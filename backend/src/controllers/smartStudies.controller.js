@@ -1,5 +1,7 @@
 import multer from 'multer';
+import GeneratedContent from '../models/GeneratedContent.model.js';
 import { runSmartStudiesAnalysis } from '../services/smartStudies.service.js';
+import { resolveSubjectForGeneratedContent } from '../utils/workspaceSubject.js';
 
 const ALLOWED_MIMES = new Set([
   'image/jpeg',
@@ -52,7 +54,45 @@ export const runSmartStudies = async (req, res) => {
       keywordFocus,
     });
 
-    return res.json(data);
+    const rawSubjectId =
+      typeof req.body?.subjectId === 'string' && req.body.subjectId.trim()
+        ? req.body.subjectId.trim()
+        : null;
+    const subject = await resolveSubjectForGeneratedContent(req.userId, rawSubjectId);
+
+    const fileLabel = (req.file.originalname || 'document').slice(0, 120);
+    const titleBase =
+      mode === 'summarize'
+        ? `Smart study · Summary · ${fileLabel}`
+        : `Smart study · Keywords · ${fileLabel}`;
+
+    const storedContent = {
+      ...data,
+      fileName: req.file.originalname || '',
+      mimeType: req.file.mimetype,
+    };
+
+    const topic =
+      mode === 'summarize'
+        ? (topicsDetails || '').trim().slice(0, 120) || fileLabel
+        : (keywordFocus || '').trim().slice(0, 120) || fileLabel;
+
+    const doc = new GeneratedContent({
+      userId: req.userId,
+      subjectId: subject._id,
+      type: 'smart_study',
+      title: titleBase.slice(0, 200),
+      topic: topic || 'Smart Studies',
+      content: storedContent,
+      contextUsed: [],
+      metadata: {
+        generatedAt: new Date(),
+        depth: mode,
+      },
+    });
+    await doc.save();
+
+    return res.json({ ...data, savedContentId: doc._id });
   } catch (error) {
     console.error('Smart Studies error:', error);
     return res.status(500).json({

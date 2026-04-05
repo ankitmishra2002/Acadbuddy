@@ -7,6 +7,7 @@ const SESSION_MODE_MAP = {
   ppt: 'notes',
   revision_sheet: 'revision',
   mock_paper: 'exam',
+  smart_study: 'notes',
   quiz: 'quiz',
   exam: 'exam',
   revision: 'revision'

@@ -102,7 +102,8 @@ const ContentList = ({ subjectId }) => {
     report: 'Report',
     ppt: 'PPT',
     revision_sheet: 'Revision Sheet',
-    mock_paper: 'Mock Paper'
+    mock_paper: 'Mock Paper',
+    smart_study: 'Smart Study'
   };
 
   if (loading) {
@@ -124,6 +125,7 @@ const ContentList = ({ subjectId }) => {
           <option value="ppt">PPT</option>
           <option value="revision_sheet">Revision Sheets</option>
           <option value="mock_paper">Mock Papers</option>
+          <option value="smart_study">Smart Studies</option>
         </select>
       </div>
 

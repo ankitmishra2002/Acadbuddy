@@ -12,7 +12,7 @@ const communityPostSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['notes', 'report', 'ppt', 'revision_sheet', 'mock_paper'],
+    enum: ['notes', 'report', 'ppt', 'revision_sheet', 'mock_paper', 'smart_study'],
     required: true
   },
   title: {

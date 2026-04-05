@@ -8,6 +8,26 @@ export const generateMarkdown = (data) => {
     return data;
   }
 
+  // Smart Studies (saved as GeneratedContent type smart_study)
+  if (data.mode === 'summarize' && typeof data.summary === 'string') {
+    return data.summary;
+  }
+  if (data.mode === 'keywords') {
+    let md = '';
+    if (Array.isArray(data.keywords) && data.keywords.length > 0) {
+      md += '## Keywords\n\n';
+      data.keywords.forEach((k) => {
+        md += `- ${k}\n`;
+      });
+      md += '\n';
+    }
+    if (typeof data.excerpt === 'string' && data.excerpt.trim()) {
+      md += '## Excerpt\n\n';
+      md += data.excerpt.trim();
+    }
+    if (md) return md;
+  }
+
   // PPT slides
   if (data.slides && Array.isArray(data.slides)) {
     data.slides.forEach((slide, idx) => {
@@ -77,6 +97,13 @@ export const generateMarkdown = (data) => {
     markdown += `## Definitions\n\n`;
     data.definitions.forEach(d => markdown += `- ${d}\n`);
     markdown += '\n';
+  }
+  if (data.reviewQuestions && Array.isArray(data.reviewQuestions)) {
+    markdown += `## Review questions\n\n`;
+    data.reviewQuestions.forEach((rq, idx) => {
+      markdown += `### Q${idx + 1}. ${rq.question || ''}\n\n`;
+      if (rq.answer) markdown += `**Answer:** ${rq.answer}\n\n`;
+    });
   }
 
   // If we collected some structured data

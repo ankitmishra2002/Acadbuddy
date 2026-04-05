@@ -13,8 +13,10 @@ import {
   Hash,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import api from '../services/api';
+import { useToast } from '../context/ToastContext';
 
 const SESSIONS_KEY = 'smartStudies_sessions_v1';
 const MAX_SESSIONS = 12;
@@ -71,6 +73,7 @@ function highlightExcerpt(excerpt, keywords) {
 }
 
 const SmartStudies = () => {
+  const toast = useToast();
   const [activeTool, setActiveTool] = useState(null);
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -81,10 +84,28 @@ const SmartStudies = () => {
   const [error, setError] = useState('');
   const [result, setResult] = useState(null);
   const [sessions, setSessions] = useState(loadSessions);
+  const [subjects, setSubjects] = useState([]);
+  const [subjectId, setSubjectId] = useState('');
+  const [savedContentId, setSavedContentId] = useState(null);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
     setSessions(loadSessions());
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await api.get('/subjects');
+        if (!cancelled && Array.isArray(data)) setSubjects(data);
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -112,6 +133,7 @@ const SmartStudies = () => {
     setTargetWordCount(500);
     setKeywordFocus('');
     setResult(null);
+    setSavedContentId(null);
     setError('');
     if (fileInputRef.current) fileInputRef.current.value = '';
   }, []);
@@ -163,10 +185,12 @@ const SmartStudies = () => {
     setLoading(true);
     setError('');
     setResult(null);
+    setSavedContentId(null);
     try {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('mode', activeTool);
+      if (subjectId) formData.append('subjectId', subjectId);
       if (activeTool === 'summarize') {
         formData.append('topicsDetails', topicsDetails);
         formData.append('targetWordCount', String(targetWordCount));
@@ -177,6 +201,10 @@ const SmartStudies = () => {
       const { data } = await api.post('/smart-studies/run', formData);
 
       setResult(data);
+      setSavedContentId(data.savedContentId || null);
+      if (data.savedContentId) {
+        toast.success('Saved to your workspace — view or share from the subject’s My Generated Content.');
+      }
       if (activeTool === 'summarize' && data.summary) {
         pushSession('summarize', data.summary);
       } else if (activeTool === 'keywords') {
@@ -437,6 +465,27 @@ const SmartStudies = () => {
                     </div>
                   )}
 
+                  {subjects.length > 0 && (
+                    <div>
+                      <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        Save to subject (optional)
+                      </label>
+                      <select
+                        value={subjectId}
+                        onChange={(e) => setSubjectId(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/25 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                      >
+                        <option value="">Default — first subject or &quot;My workspace&quot;</option>
+                        {subjects.map((s) => (
+                          <option key={s._id} value={s._id}>
+                            {s.name}
+                            {s.code ? ` (${s.code})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
                   <button
                     type="button"
                     disabled={loading || !file}
@@ -471,6 +520,16 @@ const SmartStudies = () => {
                       : 'border-violet-200/80 bg-violet-50/50 dark:border-violet-900/50 dark:bg-slate-900/90'
                   }`}
                 >
+                  {savedContentId && (
+                    <div className="mb-4 flex justify-end">
+                      <Link
+                        to={`/content/${savedContentId}`}
+                        className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-500"
+                      >
+                        Open saved copy
+                      </Link>
+                    </div>
+                  )}
                   {result?.mode === 'summarize' && result.summary && (
                     <div>
                       <h3 className="mb-3 text-sm font-bold text-slate-800 dark:text-slate-200">Summary</h3>

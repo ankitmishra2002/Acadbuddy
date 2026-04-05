@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, Eye, Share2, Download, FileText, Presentation, FileCheck, BookOpen, ClipboardList, Sparkles } from 'lucide-react';
+import { ArrowLeft, Eye, Share2, Download, FileText, Presentation, FileCheck, BookOpen, ClipboardList, Sparkles, Brain } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import api from '../services/api';
 import Layout from '../components/layout/Layout';
 import { downloadAsMarkdown } from '../utils/downloadUtils';
@@ -93,6 +94,8 @@ const ContentView = () => {
         return <ClipboardList className="text-orange-600" size={24} />;
       case 'mock_paper':
         return <BookOpen className="text-red-600" size={24} />;
+      case 'smart_study':
+        return <Brain className="text-indigo-600" size={24} />;
       default:
         return <FileText className="text-gray-600" size={24} />;
     }
@@ -104,7 +107,8 @@ const ContentView = () => {
       report: 'Report',
       ppt: 'PPT',
       revision_sheet: 'Revision Sheet',
-      mock_paper: 'Mock Paper'
+      mock_paper: 'Mock Paper',
+      smart_study: 'Smart Study'
     };
     return labels[type] || type;
   };
@@ -217,7 +221,35 @@ const ContentView = () => {
 
         {/* Content Display */}
         <div className="bg-white rounded-lg shadow-sm p-8">
-          {content.type === 'ppt' && content.content?.slides ? (
+          {content.type === 'smart_study' && content.content?.mode === 'summarize' && content.content?.summary ? (
+            <div className="prose max-w-none">
+              <ReactMarkdown>{content.content.summary}</ReactMarkdown>
+            </div>
+          ) : content.type === 'smart_study' && content.content?.mode === 'keywords' ? (
+            <div className="space-y-6">
+              {content.content.keywords?.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800 mb-3">Keywords</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {content.content.keywords.map((kw, i) => (
+                      <span
+                        key={`${i}-${kw}`}
+                        className="inline-flex rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-sm text-indigo-900"
+                      >
+                        {kw}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {content.content.excerpt && (
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800 mb-3">Excerpt</h3>
+                  <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{content.content.excerpt}</p>
+                </div>
+              )}
+            </div>
+          ) : content.type === 'ppt' && content.content?.slides ? (
             <div className="space-y-6">
               {content.content.slides.map((slide, index) => {
                 const bullets = resolveSlideBullets(slide);
@@ -303,7 +335,10 @@ const ContentView = () => {
                 </div>
               ))}
             </div>
-          ) : content.content?.keyPoints || content.content?.formulae || content.content?.definitions ? (
+          ) : content.content?.keyPoints ||
+            content.content?.formulae ||
+            content.content?.definitions ||
+            content.content?.reviewQuestions ? (
             <div className="space-y-6">
               {content.content.keyPoints && content.content.keyPoints.length > 0 && (
                 <div>
@@ -342,6 +377,21 @@ const ContentView = () => {
                       </li>
                     ))}
                   </ul>
+                </div>
+              )}
+              {content.content.reviewQuestions && content.content.reviewQuestions.length > 0 && (
+                <div>
+                  <h3 className="text-xl font-bold text-gray-800 mb-3">Review questions</h3>
+                  <div className="space-y-4">
+                    {content.content.reviewQuestions.map((rq, index) => (
+                      <div key={index} className="border border-amber-200 rounded-lg p-4 bg-amber-50/50">
+                        <p className="font-medium text-gray-900">{index + 1}. {rq.question}</p>
+                        {rq.answer && (
+                          <p className="mt-2 text-sm text-gray-700 whitespace-pre-wrap">{rq.answer}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
