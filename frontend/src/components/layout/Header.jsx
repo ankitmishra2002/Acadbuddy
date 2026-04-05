@@ -34,7 +34,7 @@ const Header = ({ onToggleSidebar, sidebarOpen, isDarkMode, onToggleTheme }) => 
               <div className="bg-white dark:bg-slate-800 p-2 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm group-hover:shadow-md transition-all">
                 <img
                   src="/logo_1.png"
-                  alt="Academic Help Buddy Logo"
+                  alt="AcadBuddy Logo"
                   className="h-7 w-7 sm:h-8 sm:w-8 object-contain"
                 />
               </div>

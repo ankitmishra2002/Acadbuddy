@@ -129,7 +129,7 @@ const Footer = () => {
 
         <div className="border-t border-gray-700 mt-8 pt-6 flex flex-col md:flex-row justify-between items-center">
           <p className="text-gray-400 text-sm">
-            © {currentYear} Academic Help Buddy. All rights reserved.
+            © {currentYear} AcadBuddy. All rights reserved.
           </p>
           <div className="mt-4 md:mt-0 flex items-center text-gray-400 text-sm">
             <span>Built with</span>
