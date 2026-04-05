@@ -1,12 +1,12 @@
 import { lazy, Suspense, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import useAuthStore from './store/authStore';
-import Landing from './pages/Landing';
-import Login from './pages/Login';
-import PrivateRoute from './components/common/PrivateRoute';
-import AdminRoute from './components/common/AdminRoute';
+import PrivateRoute from './components/common/PrivateRoute.jsx';
+import AdminRoute from './components/common/AdminRoute.jsx';
 
 const Layout = lazy(() => import('./components/layout/Layout'));
+const Landing = lazy(() => import('./pages/Landing.jsx'));
+const Login = lazy(() => import('./pages/Login.jsx'));
 const Dashboard = lazy(() => import('./pages/Dashboard.jsx'));
 const Subjects = lazy(() => import('./pages/Subjects.jsx'));
 const SubjectWorkspace = lazy(() => import('./pages/SubjectWorkspace.jsx'));
