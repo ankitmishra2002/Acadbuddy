@@ -5,8 +5,8 @@ import PrivateRoute from './components/common/PrivateRoute.jsx';
 import AdminRoute from './components/common/AdminRoute.jsx';
 
 const Layout = lazy(() => import('./components/layout/Layout'));
-const Landing = lazy(() => import('./pages/landing.jsx'));
-const Login = lazy(() => import('./pages/login.jsx'));
+const Landing = lazy(() => import('./pages/Landing.jsx'));
+const Login = lazy(() => import('./pages/Login.jsx'));
 const Dashboard = lazy(() => import('./pages/Dashboard.jsx'));
 const Subjects = lazy(() => import('./pages/Subjects.jsx'));
 const SubjectWorkspace = lazy(() => import('./pages/SubjectWorkspace.jsx'));
