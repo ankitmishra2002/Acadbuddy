@@ -3,9 +3,11 @@ import { createPortal } from 'react-dom';
 import { Upload, FileText, X, Cloud, Loader2, Eye, Download, Share2 } from 'lucide-react';
 import api from '../../services/api';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '../../context/ToastContext';
 
 const ContextManager = ({ subjectId }) => {
   const navigate = useNavigate();
+  const toast = useToast();
   const [contexts, setContexts] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
@@ -47,10 +49,10 @@ const ContextManager = ({ subjectId }) => {
       
       setCloudinaryUrl(response.data.url);
       setCloudinaryPublicId(response.data.public_id);
-      alert('File uploaded to Cloudinary successfully!');
+      toast.success('File uploaded to Cloudinary successfully.');
     } catch (error) {
       console.error('Cloudinary upload error:', error);
-      alert('Failed to upload file to Cloudinary. You can still upload directly.');
+      toast.error('Could not upload to Cloudinary. You can still upload the file directly.');
     } finally {
       setUploadingToCloudinary(false);
     }
@@ -93,7 +95,7 @@ const ContextManager = ({ subjectId }) => {
         error.response?.data?.message ||
         error.message ||
         'Failed to upload context';
-      alert(msg);
+      toast.error(msg);
     }
   };
 
@@ -103,7 +105,7 @@ const ContextManager = ({ subjectId }) => {
       await api.delete(`/context/${id}`);
       fetchContexts();
     } catch (error) {
-      alert('Failed to delete context');
+      toast.error('Failed to delete context');
     }
   };
 
@@ -139,8 +141,9 @@ const ContextManager = ({ subjectId }) => {
         window.open(fileUrl, '_blank');
       }
     } else {
-      // Show content in a modal or new page
-      alert('File content:\n\n' + context.content.substring(0, 500) + (context.content.length > 500 ? '...' : ''));
+      const preview =
+        context.content.substring(0, 600) + (context.content.length > 600 ? '…' : '');
+      toast.info(preview, { title: 'Content preview', duration: 8000 });
     }
   };
 
@@ -173,11 +176,11 @@ const ContextManager = ({ subjectId }) => {
       );
 
       await api.post('/community/posts', formDataToSend);
-      alert('Context shared to community successfully!');
+      toast.success('Shared to community. Redirecting…');
       navigate('/community');
     } catch (error) {
       console.error('Share error:', error);
-      alert('Failed to share to community. Please try again.');
+      toast.error('Failed to share to community. Please try again.');
     }
   };
 

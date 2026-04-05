@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Presentation } from 'lucide-react';
 import api from '../../services/api';
+import { useToast } from '../../context/ToastContext';
 
 const PPTGenerator = ({ subjectId }) => {
+  const toast = useToast();
   const [formData, setFormData] = useState({
     topic: '',
     slideCount: 10,
@@ -24,9 +26,9 @@ const PPTGenerator = ({ subjectId }) => {
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.message;
       if (errorMessage.includes('API key') || errorMessage.includes('authentication')) {
-        alert('AI service is not properly configured. Please contact the administrator.');
+        toast.error('AI service is not properly configured. Please contact the administrator.');
       } else {
-        alert('Failed to generate PPT: ' + errorMessage);
+        toast.error('Failed to generate PPT: ' + errorMessage);
       }
     } finally {
       setLoading(false);

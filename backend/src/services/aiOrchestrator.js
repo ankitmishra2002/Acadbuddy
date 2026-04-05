@@ -357,6 +357,60 @@ Output format as JSON:
 };
 
 /**
+ * Quick revision from free-text prompt (no files) — key points, definitions, and N review Q&As
+ */
+export const generateQuickRevisionFromPrompt = async (
+  userContext,
+  styleProfile,
+  { topicDescription, questionCount, extraDetails }
+) => {
+  const notesBlock = `USER TOPIC / CONTEXT (primary source):\n${topicDescription || 'General revision'}\n\nEXTRA DETAILS / CONSTRAINTS:\n${extraDetails || 'None'}`;
+
+  const contextData = {
+    syllabus: '',
+    notes: notesBlock,
+    pyq: '',
+  };
+
+  const basePrompt = buildBasePrompt(userContext, styleProfile, contextData);
+  const n = Math.min(Math.max(parseInt(String(questionCount), 10) || 5, 1), 25);
+
+  const prompt = `${basePrompt}
+
+Generate **quick revision notes** for rapid exam prep based ONLY on the topic/context above. Do not assume unseen PDFs or images.
+
+Requirements:
+- Bullet-style key points, important formulae (if relevant), and short definitions.
+- Include exactly ${n} review questions with concise model answers (mix recall + short application).
+- Stay within the user's stated topic and extra details.
+
+Output format as JSON:
+{
+  "keyPoints": ["..."],
+  "formulae": ["..."],
+  "definitions": ["..."],
+  "reviewQuestions": [
+    { "question": "...", "answer": "..." }
+  ]
+}`;
+
+  try {
+    const systemInstruction = 'You are an expert academic assistant. Always respond with strictly valid JSON.';
+    const responseText = await internalGenerateContent(systemInstruction, prompt);
+
+    return parseAIResponse(responseText, {
+      keyPoints: [],
+      formulae: [],
+      definitions: [],
+      reviewQuestions: [],
+    });
+  } catch (error) {
+    console.error('AI Generation Error:', error);
+    throw new Error(`Failed to generate quick revision: ${error.message}`);
+  }
+};
+
+/**
  * Generate mock paper
  */
 export const generateMockPaper = async (userContext, styleProfile, contextData, shortCount, longCount) => {

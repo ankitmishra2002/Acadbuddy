@@ -4,8 +4,10 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 import useAuthStore from '../store/authStore';
+import { useToast } from '../context/ToastContext';
 
 const Profile = () => {
+  const toast = useToast();
   const { user, fetchUser } = useAuthStore();
   const [formData, setFormData] = useState({
     name: '',
@@ -55,9 +57,9 @@ const Profile = () => {
         }
       });
       await fetchUser();
-      alert('Profile updated successfully!');
+      toast.success('Profile updated successfully.');
     } catch (error) {
-      alert('Failed to update profile');
+      toast.error('Failed to update profile');
     } finally {
       setSaving(false);
     }

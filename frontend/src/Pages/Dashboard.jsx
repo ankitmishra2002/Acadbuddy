@@ -1,104 +1,323 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { BookOpen, TrendingUp, Clock, Award, FileText, ChevronRight, Activity, Globe, ArrowRight } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import {
+  BookOpen,
+  TrendingUp,
+  Clock,
+  Award,
+  FileText,
+  ChevronRight,
+  Activity,
+  Globe,
+  ArrowRight,
+  Sparkles,
+  LayoutGrid,
+  User,
+  Users,
+  Zap,
+  History,
+  ExternalLink,
+  PieChart as PieChartIcon,
+} from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 import api from '../services/api';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from 'recharts';
 import { motion } from 'framer-motion';
+import useAuthStore from '../store/authStore';
+import { getRecentFeatures } from '../utils/recentActivity';
+
+function TopicDonutTooltip({ active, payload }) {
+  if (!active || !payload?.length) return null;
+  const p = payload[0].payload;
+  return (
+    <div className="rounded-xl border border-slate-600/80 bg-slate-950/95 px-3 py-2.5 text-xs text-white shadow-xl backdrop-blur-sm">
+      <p className="font-semibold text-slate-100">{p.name}</p>
+      <p className="text-emerald-400 mt-0.5">Avg accuracy: {p.accuracy}%</p>
+      <p className="text-slate-400 mt-0.5">Attempts: {p.value}</p>
+    </div>
+  );
+}
+
+function ActivityDonutTooltip({ active, payload }) {
+  if (!active || !payload?.length) return null;
+  const p = payload[0].payload;
+  return (
+    <div className="rounded-xl border border-slate-600/80 bg-slate-950/95 px-3 py-2.5 text-xs text-white shadow-xl">
+      <p className="font-semibold">{p.name}</p>
+      <p className="text-slate-300 mt-0.5">Relative weight in your activity mix</p>
+    </div>
+  );
+}
+
+const featureIcon = (id) => {
+  if (!id) return Sparkles;
+  if (id.startsWith('workspace')) return BookOpen;
+  if (id.startsWith('focus')) return Zap;
+  if (id.includes('quick')) return Zap;
+  if (id.includes('smart')) return Sparkles;
+  if (id.includes('community')) return Users;
+  if (id.includes('content')) return FileText;
+  if (id === 'subjects') return LayoutGrid;
+  if (id === 'styles') return Activity;
+  if (id === 'profile') return User;
+  if (id === 'dashboard') return Activity;
+  return Sparkles;
+};
+
+const quickLinks = [
+  {
+    to: '/subjects',
+    title: 'Subjects',
+    desc: 'Courses, context & AI tools',
+    gradient: 'from-blue-600 via-indigo-600 to-violet-700',
+    shadow: 'shadow-blue-500/25',
+    icon: BookOpen,
+  },
+  {
+    to: '/smart-studies',
+    title: 'Smart Studies',
+    desc: 'Summaries & keyword scans',
+    gradient: 'from-violet-600 via-fuchsia-600 to-pink-700',
+    shadow: 'shadow-fuchsia-500/25',
+    icon: Sparkles,
+  },
+  {
+    to: '/styles',
+    title: 'Answer styles',
+    desc: 'Tone, structure & presets',
+    gradient: 'from-amber-500 via-orange-600 to-rose-700',
+    shadow: 'shadow-amber-500/25',
+    icon: Activity,
+  },
+  {
+    to: '/community',
+    title: 'Community',
+    desc: 'Share & discover materials',
+    gradient: 'from-emerald-500 via-teal-600 to-cyan-700',
+    shadow: 'shadow-emerald-500/25',
+    icon: Globe,
+  },
+  {
+    to: '/quick-rvsn',
+    title: 'Quick Rvsn',
+    desc: 'Prompt-only revision packs',
+    gradient: 'from-amber-500 via-orange-600 to-rose-700',
+    shadow: 'shadow-amber-500/25',
+    icon: Zap,
+  },
+];
 
 const Dashboard = () => {
+  const { user, fetchUser } = useAuthStore();
+  const location = useLocation();
   const [stats, setStats] = useState(null);
-  const [recentSessions, setRecentSessions] = useState([]);
   const [recentContent, setRecentContent] = useState([]);
+  const [recentActivity, setRecentActivity] = useState(() => getRecentFeatures());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchDashboardData();
+    if (!user) fetchUser();
+  }, [user, fetchUser]);
+
+  useEffect(() => {
+    const refresh = () => setRecentActivity(getRecentFeatures());
+    refresh();
+    window.addEventListener('acadbuddy-activity', refresh);
+    return () => window.removeEventListener('acadbuddy-activity', refresh);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [progressRes, contentRes] = await Promise.all([
+          api.get('/users/progress'),
+          api.get('/users/recent-content?limit=6'),
+        ]);
+        setStats(progressRes.data);
+        setRecentContent(contentRes.data);
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
   }, []);
 
-  const fetchDashboardData = async () => {
-    try {
-      const [progressRes, sessionsRes, contentRes] = await Promise.all([
-        api.get('/users/progress'),
-        api.get('/sessions?limit=5'),
-        api.get('/users/recent-content?limit=5')
-      ]);
+  const greeting = useMemo(() => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
+  }, []);
 
-      setStats(progressRes.data);
-      setRecentSessions(sessionsRes.data);
-      setRecentContent(contentRes.data);
-    } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
+  const displayName = user?.name?.split?.(' ')?.[0] || 'there';
+
+  const DONUT_COLORS = [
+    '#3b82f6',
+    '#8b5cf6',
+    '#ec4899',
+    '#f97316',
+    '#10b981',
+    '#06b6d4',
+    '#eab308',
+    '#64748b',
+  ];
+
+  const topicPieData = useMemo(() => {
+    const list = stats?.quiz?.topicAccuracy || [];
+    return list.slice(0, 8).map((item) => ({
+      name: item.topic.length > 22 ? `${item.topic.substring(0, 22)}…` : item.topic,
+      value: Math.max(item.total || 1, 1),
+      accuracy: Math.round(item.accuracy),
+    }));
+  }, [stats]);
+
+  const activityPieData = useMemo(() => {
+    const q = stats?.quiz?.totalQuestions ?? 0;
+    const h = stats?.totalStudyTime ?? 0;
+    const st = stats?.studyStreak ?? 0;
+    return [
+      { name: 'Quiz attempts', value: Math.max(q, 0.01) },
+      { name: 'Study time (×)', value: Math.max(h * 8, 0.01) },
+      { name: 'Streak days (×)', value: Math.max(st * 12, 0.01) },
+    ];
+  }, [stats]);
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.06 } },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 16 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.38, ease: 'easeOut' } },
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
+      <div className="space-y-8 w-full max-w-7xl mx-auto pb-10 animate-pulse">
+        <div className="h-36 rounded-[2rem] bg-slate-200/80 dark:bg-slate-800/80" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-28 rounded-2xl bg-slate-200/70 dark:bg-slate-800/70" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="h-72 rounded-[2rem] bg-slate-200/70 dark:bg-slate-800/70" />
+          <div className="h-72 rounded-[2rem] bg-slate-200/70 dark:bg-slate-800/70" />
+        </div>
       </div>
     );
   }
 
-  const chartData = stats?.quiz?.topicAccuracy?.slice(0, 5).map(item => ({
-    topic: item.topic.length > 15 ? item.topic.substring(0, 15) + '...' : item.topic,
-    accuracy: Math.round(item.accuracy)
-  })) || [];
-
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: { opacity: 1, transition: { staggerChildren: 0.1 } }
-  };
-  
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } }
-  };
-
   return (
-    <motion.div 
+    <motion.div
       initial="hidden"
       animate="show"
       variants={containerVariants}
-      className="space-y-6 sm:space-y-8 w-full overflow-x-hidden pb-8"
+      className="space-y-8 sm:space-y-10 w-full max-w-7xl mx-auto pb-10 px-0 overflow-x-hidden"
     >
-      <motion.div variants={itemVariants} className="flex items-center justify-between px-1">
-        <h1 className="text-4xl sm:text-5xl font-black bg-clip-text text-transparent bg-gradient-to-br from-indigo-700 via-blue-700 to-slate-800 dark:from-indigo-400 dark:via-blue-400 dark:to-white tracking-tighter pb-1 drop-shadow-sm">
-          Dashboard
-        </h1>
-        <div className="hidden sm:flex items-center gap-2 text-sm font-medium text-slate-500 dark:text-slate-400 bg-white px-4 py-2 rounded-full shadow-sm border border-slate-100 dark:border-slate-700">
-          <Activity size={16} className="text-blue-500" />
-          Live Overview
+      {/* Hero */}
+      <motion.div
+        variants={itemVariants}
+        className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-gradient-to-br from-white/90 via-blue-50/50 to-indigo-50/80 p-6 sm:p-10 shadow-[0_20px_60px_-20px_rgba(59,130,246,0.35)] dark:border-slate-800/80 dark:from-slate-900/90 dark:via-slate-900/70 dark:to-indigo-950/50 dark:shadow-black/40"
+      >
+        <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gradient-to-br from-blue-400/30 to-violet-500/20 blur-3xl dark:from-blue-500/20 dark:to-violet-600/10" />
+        <div className="pointer-events-none absolute -bottom-16 left-10 h-48 w-48 rounded-full bg-cyan-400/20 blur-3xl dark:bg-cyan-500/10" />
+        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-600/90 dark:text-blue-400/90 mb-2">
+              {greeting}
+            </p>
+            <h1 className="text-3xl sm:text-5xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-blue-800 to-indigo-700 dark:from-white dark:via-blue-200 dark:to-indigo-300">
+              {displayName}
+            </h1>
+            <p className="mt-3 max-w-xl text-base text-slate-600 dark:text-slate-400 leading-relaxed">
+              Your learning command center — track progress, jump back into tools you use, and open fresh content in
+              seconds.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3 lg:justify-end">
+            <Link
+              to="/subjects"
+              className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
+            >
+              Start learning
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              to="/smart-studies"
+              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white/80 px-5 py-3 text-sm font-bold text-slate-800 shadow-sm transition hover:bg-white dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-100 dark:hover:bg-slate-800"
+            >
+              <Sparkles className="h-4 w-4 text-violet-500" />
+              Smart Studies
+            </Link>
+          </div>
         </div>
       </motion.div>
 
-      {/* Stats Cards */}
-      <motion.div variants={itemVariants} className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+      {/* Stats */}
+      <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
         {[
-          { label: 'Total Questions', value: stats?.quiz?.totalQuestions || 0, icon: BookOpen, color: 'blue' },
-          { label: 'Accuracy', value: stats?.quiz?.accuracy ? `${Math.round(stats.quiz.accuracy)}%` : '0%', icon: TrendingUp, color: 'green' },
-          { label: 'Study Streak', value: `${stats?.studyStreak || 0} days`, icon: Award, color: 'yellow' },
-          { label: 'Study Time', value: stats?.totalStudyTime ? `${Math.round(stats.totalStudyTime)}h` : '0h', icon: Clock, color: 'purple' }
+          {
+            label: 'Questions',
+            value: stats?.quiz?.totalQuestions || 0,
+            icon: BookOpen,
+            accent: 'from-sky-500 to-blue-600',
+            bg: 'bg-sky-50 dark:bg-sky-950/40',
+          },
+          {
+            label: 'Accuracy',
+            value: stats?.quiz?.accuracy ? `${Math.round(stats.quiz.accuracy)}%` : '0%',
+            icon: TrendingUp,
+            accent: 'from-emerald-500 to-teal-600',
+            bg: 'bg-emerald-50 dark:bg-emerald-950/40',
+          },
+          {
+            label: 'Streak',
+            value: `${stats?.studyStreak || 0}d`,
+            icon: Award,
+            accent: 'from-amber-500 to-orange-600',
+            bg: 'bg-amber-50 dark:bg-amber-950/40',
+          },
+          {
+            label: 'Study time',
+            value: stats?.totalStudyTime ? `${Math.round(stats.totalStudyTime)}h` : '0h',
+            icon: Clock,
+            accent: 'from-violet-500 to-purple-600',
+            bg: 'bg-violet-50 dark:bg-violet-950/40',
+          },
         ].map((stat, i) => {
           const Icon = stat.icon;
-          const bgColors = {
-            blue: 'from-blue-50 to-blue-100/50 text-blue-600 border-blue-100',
-            green: 'from-green-50 to-emerald-100/50 text-emerald-600 border-green-100',
-            yellow: 'from-amber-50 to-yellow-100/50 text-amber-600 border-amber-100',
-            purple: 'from-purple-50 to-fuchsia-100/50 text-purple-600 border-purple-100'
-          };
-          
           return (
-            <div key={i} className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white dark:border-slate-800 p-5 sm:p-6 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all group">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="order-2 sm:order-1 min-w-0 flex-1">
-                  <p className="text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400 truncate mb-1 uppercase tracking-wider">{stat.label}</p>
-                  <p className="text-2xl sm:text-3xl font-extrabold text-slate-800 dark:text-slate-100">{stat.value}</p>
+            <div
+              key={i}
+              className="group relative overflow-hidden rounded-2xl border border-white/80 bg-white/80 p-4 sm:p-6 shadow-sm backdrop-blur-xl transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800/80 dark:bg-slate-900/70"
+            >
+              <div
+                className={`pointer-events-none absolute inset-0 opacity-0 transition group-hover:opacity-[0.07] bg-gradient-to-br ${stat.accent}`}
+              />
+              <div className="relative flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    {stat.label}
+                  </p>
+                  <p className="mt-1 text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tabular-nums">
+                    {stat.value}
+                  </p>
                 </div>
-                <div className={`order-1 sm:order-2 w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl bg-gradient-to-br ${bgColors[stat.color]} border shadow-sm group-hover:scale-110 transition-transform duration-300`}>
-                  <Icon size={22} strokeWidth={2.5} />
+                <div
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${stat.accent} text-white shadow-inner`}
+                >
+                  <Icon size={20} strokeWidth={2.5} />
                 </div>
               </div>
             </div>
@@ -106,173 +325,272 @@ const Dashboard = () => {
         })}
       </motion.div>
 
-      {/* Charts */}
-      {chartData.length > 0 && (
-        <motion.div variants={itemVariants} className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white dark:border-slate-800 p-6 sm:p-8 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
-              <Activity size={20} />
+      {stats && (
+        <motion.div
+          variants={itemVariants}
+          className="grid grid-cols-1 gap-6 lg:grid-cols-2"
+        >
+          <div className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-gradient-to-br from-white/95 via-blue-50/40 to-indigo-50/30 p-6 sm:p-8 shadow-[0_20px_50px_-25px_rgba(59,130,246,0.35)] backdrop-blur-xl dark:border-slate-800/80 dark:from-slate-900/90 dark:via-slate-900/70 dark:to-indigo-950/40 dark:shadow-black/30">
+            <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-gradient-to-br from-blue-400/25 to-violet-500/20 blur-3xl" />
+            <div className="relative mb-6 flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/30">
+                <PieChartIcon size={22} />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Topic mix & accuracy</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Donut segments sized by attempts — hover for accuracy %
+                </p>
+              </div>
             </div>
-            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Topic-wise Accuracy</h2>
+            {topicPieData.length > 0 ? (
+              <div className="relative h-[min(320px,42vh)] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={topicPieData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius="58%"
+                      outerRadius="88%"
+                      paddingAngle={2.5}
+                      strokeWidth={2}
+                      stroke="rgba(15,23,42,0.35)"
+                    >
+                      {topicPieData.map((_, i) => (
+                        <Cell
+                          key={i}
+                          fill={DONUT_COLORS[i % DONUT_COLORS.length]}
+                          className="drop-shadow-sm"
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<TopicDonutTooltip />} />
+                    <Legend
+                      verticalAlign="bottom"
+                      height={36}
+                      formatter={(value) => (
+                        <span className="text-xs text-slate-600 dark:text-slate-300">{value}</span>
+                      )}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="flex min-h-[220px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white/50 py-10 text-center dark:border-slate-700 dark:bg-slate-800/30">
+                <PieChartIcon className="mb-2 text-slate-300 dark:text-slate-600" size={40} />
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">No topic data yet</p>
+                <p className="mt-1 max-w-xs text-xs text-slate-500">Take topic-tagged quizzes to populate this ring.</p>
+              </div>
+            )}
           </div>
-          <div className="w-full overflow-x-auto">
-            <ResponsiveContainer width="100%" height={250} minHeight={200}>
-              <BarChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis 
-                  dataKey="topic" 
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                  interval={0}
-                  tick={{ fontSize: 11, fill: '#64748b' }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                <Tooltip 
-                  contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }}
-                  cursor={{ fill: '#f1f5f9' }}
-                />
-                <Bar dataKey="accuracy" fill="#3b82f6" radius={[6, 6, 0, 0]} barSize={40} />
-              </BarChart>
-            </ResponsiveContainer>
+
+          <div className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-gradient-to-br from-white/95 via-violet-50/40 to-fuchsia-50/30 p-6 sm:p-8 shadow-[0_20px_50px_-25px_rgba(139,92,246,0.3)] backdrop-blur-xl dark:border-slate-800/80 dark:from-slate-900/90 dark:via-slate-900/70 dark:to-violet-950/40">
+            <div className="pointer-events-none absolute -left-12 bottom-0 h-56 w-56 rounded-full bg-gradient-to-tr from-fuchsia-500/15 to-cyan-500/10 blur-3xl" />
+            <div className="relative mb-6 flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white shadow-lg shadow-violet-500/30">
+                <Activity size={22} />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Activity balance</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Quiz volume vs study time vs streak (scaled for the chart)
+                </p>
+              </div>
+            </div>
+            <div className="relative h-[min(320px,42vh)] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={activityPieData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius="55%"
+                    outerRadius="88%"
+                    paddingAngle={3}
+                    strokeWidth={2}
+                    stroke="rgba(15,23,42,0.35)"
+                  >
+                    {activityPieData.map((_, i) => (
+                      <Cell
+                        key={i}
+                        fill={['#8b5cf6', '#06b6d4', '#f59e0b'][i % 3]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<ActivityDonutTooltip />} />
+                  <Legend
+                    verticalAlign="bottom"
+                    formatter={(value) => (
+                      <span className="text-xs text-slate-600 dark:text-slate-300">{value}</span>
+                    )}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </motion.div>
       )}
 
-      {/* Main Content Areas */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-        
-        {/* Recent Generated Content */}
-        <motion.div variants={itemVariants} className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white dark:border-slate-800 p-6 sm:p-8 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
-              <FileText size={20} />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-8">
+        {/* Recent content */}
+        <motion.div
+          variants={itemVariants}
+          className="rounded-[2rem] border border-white/80 bg-white/80 p-6 sm:p-8 shadow-sm backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/70"
+        >
+          <div className="mb-6 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400">
+                <FileText size={20} />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Recent content</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">AI-generated items you created</p>
+              </div>
             </div>
-            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Recent Content</h2>
+            <Link
+              to="/subjects"
+              className="hidden text-xs font-bold text-blue-600 hover:underline dark:text-blue-400 sm:inline"
+            >
+              Subjects
+            </Link>
           </div>
-          
+
           {recentContent.length > 0 ? (
-            <div className="space-y-3">
+            <ul className="space-y-2">
               {recentContent.map((content) => (
-                <Link
-                  key={content._id}
-                  to={`/content/${content._id}`}
-                  className="group flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/70 border border-slate-100 dark:border-slate-700 rounded-2xl hover:bg-white dark:hover:bg-slate-800 hover:shadow-md hover:-translate-y-0.5 hover:border-blue-100 transition-all cursor-pointer gap-3"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-1.5">
-                      <span className="text-[10px] font-bold tracking-wider uppercase bg-blue-100 text-blue-800 px-2.5 py-1 rounded-md whitespace-nowrap border border-blue-200/50">
-                        {content.type.replace('_', ' ')}
-                      </span>
-                      <p className="font-bold text-slate-800 dark:text-slate-100 text-sm sm:text-base truncate group-hover:text-blue-600 transition-colors">{content.title}</p>
+                <li key={content._id}>
+                  <Link
+                    to={`/content/${content._id}`}
+                    className="group flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50/80 p-4 transition hover:border-blue-200 hover:bg-white hover:shadow-md dark:border-slate-800 dark:bg-slate-800/50 dark:hover:border-blue-900/50 dark:hover:bg-slate-800"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-1 flex flex-wrap items-center gap-2">
+                        <span className="rounded-md bg-blue-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-800 dark:bg-blue-950/60 dark:text-blue-200">
+                          {String(content.type || '').replace('_', ' ')}
+                        </span>
+                        <span className="truncate font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                          {content.title}
+                        </span>
+                      </div>
+                      <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                        {content.subjectId?.name || 'Subject'} {content.topic ? `· ${content.topic}` : ''}
+                      </p>
                     </div>
-                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 truncate flex items-center gap-1.5">
-                      <span className="font-medium text-slate-700 dark:text-slate-200 dark:text-slate-200">{content.subjectId?.name || 'Unknown Subject'}</span>
-                      {content.topic && <span className="opacity-60">• {content.topic}</span>}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-slate-400 font-medium ml-1">
-                    <span className="bg-white dark:bg-slate-700 px-2 py-1 rounded-md shadow-sm border border-slate-100 dark:border-slate-600 hidden sm:block">
-                      {new Date(content.createdAt).toLocaleDateString()}
-                    </span>
-                    <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all duration-300">
-                      <ChevronRight size={16} strokeWidth={3} />
-                    </div>
-                  </div>
-                </Link>
+                    <ChevronRight className="h-5 w-5 shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-blue-500" />
+                  </Link>
+                </li>
               ))}
-            </div>
+            </ul>
           ) : (
-             <div className="flex flex-col items-center justify-center p-8 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-dashed border-slate-300 dark:border-slate-600 text-center">
-                <FileText className="text-slate-300 dark:text-slate-600 mb-3" size={32} />
-                <p className="text-slate-500 dark:text-slate-400 font-medium">No content generated yet.</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Visit your subjects to get started!</p>
-             </div>
+            <div className="flex flex-col items-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 py-12 text-center dark:border-slate-700 dark:bg-slate-800/30">
+              <FileText className="mb-3 text-slate-300 dark:text-slate-600" size={36} />
+              <p className="font-medium text-slate-600 dark:text-slate-400">No generated content yet</p>
+              <p className="mt-1 max-w-xs text-xs text-slate-500">Open a subject and use Notes, Report, or PPT to create your first item.</p>
+              <Link
+                to="/subjects"
+                className="mt-4 text-sm font-bold text-blue-600 hover:underline dark:text-blue-400"
+              >
+                Go to subjects
+              </Link>
+            </div>
           )}
         </motion.div>
 
-        {/* Recent Sessions */}
-        <motion.div variants={itemVariants} className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white dark:border-slate-800 p-6 sm:p-8 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600">
-              <Clock size={20} />
+        {/* Recent app activity (local) */}
+        <motion.div
+          variants={itemVariants}
+          className="rounded-[2rem] border border-white/80 bg-white/80 p-6 sm:p-8 shadow-sm backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/70"
+        >
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-fuchsia-100 text-fuchsia-600 dark:bg-fuchsia-950/40 dark:text-fuchsia-400">
+              <History size={20} />
             </div>
-            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Recent Sessions</h2>
+            <div>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Recent activity</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Features and pages you used on this device</p>
+            </div>
           </div>
 
-          {recentSessions.length > 0 ? (
-            <div className="space-y-3 flex-grow">
-              {recentSessions.map((session) => (
-                <div key={session._id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/70 border border-slate-100 dark:border-slate-700 rounded-2xl hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm transition-all gap-4">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-bold text-slate-800 dark:text-slate-100 text-sm sm:text-base truncate mb-1">
-                      {session.subjectId?.name || session.contentId?.title || 'Unknown Subject'}
-                    </p>
-                    <div className="flex items-center gap-2">
-                       <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                       <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
-                         {new Date(session.startTime).toLocaleDateString()} • {session.mode}
-                       </p>
-                    </div>
-                  </div>
-                  <div className="px-3 py-1.5 bg-white dark:bg-slate-700 rounded-lg border border-slate-100 dark:border-slate-600 text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 shadow-sm whitespace-nowrap">
-                    {session.duration ? `${Math.round(session.duration / 60000)} min` : (
-                      <span className="text-amber-600 dark:text-amber-400 animate-pulse">Ongoing</span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+          {recentActivity.length > 0 ? (
+            <ul className="max-h-[min(420px,55vh)] space-y-2 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
+              {recentActivity.map((entry) => {
+                const Icon = featureIcon(entry.id);
+                let timeLabel = '';
+                try {
+                  timeLabel = formatDistanceToNow(new Date(entry.at), { addSuffix: true });
+                } catch {
+                  timeLabel = '';
+                }
+                return (
+                  <li key={`${entry.id}-${entry.at}`}>
+                    <Link
+                      to={entry.path || '/dashboard'}
+                      className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-gradient-to-r from-slate-50/90 to-white/80 p-3.5 transition hover:border-fuchsia-200 hover:shadow-sm dark:border-slate-800 dark:from-slate-800/40 dark:to-slate-900/40 dark:hover:border-fuchsia-900/40"
+                    >
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-fuchsia-100/80 text-fuchsia-700 dark:bg-fuchsia-950/50 dark:text-fuchsia-300">
+                        <Icon size={18} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-semibold text-slate-900 dark:text-white">{entry.label}</p>
+                        {timeLabel ? (
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400">{timeLabel}</p>
+                        ) : null}
+                      </div>
+                      <ExternalLink className="h-4 w-4 shrink-0 text-slate-300 dark:text-slate-600" />
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
           ) : (
-            <div className="flex flex-col items-center justify-center h-full p-8 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-dashed border-slate-300 dark:border-slate-600 text-center">
-                <Clock className="text-slate-300 dark:text-slate-500 mb-3" size={32} />
-                <p className="text-slate-500 dark:text-slate-400 font-medium">No active sessions.</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Track time while studying topics.</p>
+            <div className="flex flex-col items-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 py-12 text-center dark:border-slate-700 dark:bg-slate-800/30">
+              <History className="mb-3 text-slate-300 dark:text-slate-600" size={36} />
+              <p className="font-medium text-slate-600 dark:text-slate-400">No activity yet</p>
+              <p className="mt-1 max-w-xs text-xs text-slate-500">
+                As you use Smart Studies, subjects, and community, your recent tools will show up here.
+              </p>
             </div>
           )}
         </motion.div>
       </div>
 
-      {/* Quick Actions (CTAs) */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mt-4">
-        <Link
-          to="/subjects"
-          className="relative overflow-hidden group bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 text-white p-6 sm:p-8 rounded-[2rem] shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 hover:-translate-y-1 transition-all duration-300"
-        >
-          <div className="absolute top-0 right-0 -translate-y-4 translate-x-4 w-32 h-32 bg-white/10 rounded-full blur-[30px] group-hover:bg-white/20 transition-all duration-500"></div>
-          <div className="relative z-10 flex items-center justify-between">
-            <div>
-              <div className="inline-flex p-3 bg-white/10 backdrop-blur-md rounded-xl mb-4 text-white">
-                <BookOpen size={24} />
-              </div>
-              <h3 className="text-xl sm:text-2xl font-bold mb-2 tracking-tight block">Manage Subjects</h3>
-              <p className="text-blue-100/80 font-medium text-sm sm:text-base">Organize curricula and course files</p>
-            </div>
-            <div className="w-12 h-12 rounded-full border border-white/20 flex items-center justify-center bg-white/5 backdrop-blur-md group-hover:bg-white inline-flex group-hover:text-blue-600 transition-all duration-300">
-              <ArrowRight size={20} className="-translate-x-1 group-hover:translate-x-0 transition-transform" />
-            </div>
-          </div>
-        </Link>
-        <Link
-          to="/community"
-          className="relative overflow-hidden group bg-gradient-to-br from-emerald-500 via-teal-600 to-green-700 text-white p-6 sm:p-8 rounded-[2rem] shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 hover:-translate-y-1 transition-all duration-300"
-        >
-          <div className="absolute top-0 right-0 -translate-y-4 translate-x-4 w-32 h-32 bg-white/10 rounded-full blur-[30px] group-hover:bg-white/20 transition-all duration-500"></div>
-           <div className="relative z-10 flex items-center justify-between">
-            <div>
-              <div className="inline-flex p-3 bg-white/10 backdrop-blur-md rounded-xl mb-4 text-white">
-                <Globe size={24} />
-              </div>
-              <h3 className="text-xl sm:text-2xl font-bold mb-2 tracking-tight block">Explore Community</h3>
-              <p className="text-emerald-100/80 font-medium text-sm sm:text-base">Discover & clone top-tier materials</p>
-            </div>
-            <div className="w-12 h-12 rounded-full border border-white/20 flex items-center justify-center bg-white/5 backdrop-blur-md group-hover:bg-white inline-flex group-hover:text-emerald-600 transition-all duration-300">
-              <ArrowRight size={20} className="-translate-x-1 group-hover:translate-x-0 transition-transform" />
-            </div>
-          </div>
-        </Link>
+      {/* Quick links grid */}
+      <motion.div variants={itemVariants}>
+        <div className="mb-4 flex items-center justify-between px-1">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">Explore</h2>
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Jump anywhere</span>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {quickLinks.map((card) => {
+            const Icon = card.icon;
+            return (
+              <Link
+                key={card.to}
+                to={card.to}
+                className={`group relative overflow-hidden rounded-[2rem] bg-gradient-to-br ${card.gradient} p-6 sm:p-8 text-white shadow-lg ${card.shadow} transition hover:-translate-y-1 hover:shadow-xl`}
+              >
+                <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-white/10 blur-2xl transition group-hover:bg-white/20" />
+                <div className="relative flex items-start justify-between gap-4">
+                  <div>
+                    <div className="mb-3 inline-flex rounded-xl bg-white/15 p-3 backdrop-blur-sm">
+                      <Icon size={22} />
+                    </div>
+                    <h3 className="text-xl font-bold tracking-tight">{card.title}</h3>
+                    <p className="mt-1 text-sm font-medium text-white/85">{card.desc}</p>
+                  </div>
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/25 bg-white/10 transition group-hover:bg-white group-hover:text-slate-900">
+                    <ArrowRight size={18} className="-translate-x-0.5 transition group-hover:translate-x-0" />
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
       </motion.div>
     </motion.div>
   );

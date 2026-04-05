@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
+import { recordFeatureVisit } from '../../utils/recentActivity';
 
 const Layout = ({ children }) => {
+  const location = useLocation();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(false);
   const sidebarRef = useRef(null);
@@ -75,6 +77,29 @@ const Layout = ({ children }) => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [mobileSidebarOpen]);
+
+  useEffect(() => {
+    const path = location.pathname;
+    if (/^\/subjects\/[^/]+/.test(path)) return;
+
+    const routes = [
+      [/^\/dashboard$/, 'dashboard', 'Dashboard'],
+      [/^\/subjects$/, 'subjects', 'Subjects'],
+      [/^\/smart-studies$/, 'smart-studies', 'Smart Studies'],
+      [/^\/quick-rvsn$/, 'quick-rvsn', 'Quick Rvsn'],
+      [/^\/styles$/, 'styles', 'Answer styles'],
+      [/^\/profile$/, 'profile', 'Profile'],
+      [/^\/community$/, 'community', 'Community'],
+      [/^\/community\/.+/, 'community-post', 'Community post'],
+      [/^\/content\/.+/, 'content-view', 'Saved content'],
+    ];
+    for (const [re, id, label] of routes) {
+      if (re.test(path)) {
+        recordFeatureVisit({ id, label, path });
+        break;
+      }
+    }
+  }, [location.pathname]);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-500 relative flex flex-col w-full max-w-[100vw]">

@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { FileText, Sparkles } from 'lucide-react';
 import api from '../../services/api';
+import { useToast } from '../../context/ToastContext';
 
 const RapidSheetsGenerator = ({ subjectId }) => {
+  const toast = useToast();
   const [formData, setFormData] = useState({
     topics: ''
   });
@@ -20,7 +22,7 @@ const RapidSheetsGenerator = ({ subjectId }) => {
       });
       setGeneratedContent(response.data);
     } catch (error) {
-      alert('Failed to generate revision sheets: ' + (error.response?.data?.message || error.message));
+      toast.error('Failed to generate revision sheets: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
     }

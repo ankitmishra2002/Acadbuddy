@@ -14,6 +14,7 @@ import ContentView from './Pages/ContentView';
 import Profile from './Pages/Profile';
 import AdminDashboard from './Pages/AdminDashboard';
 import SmartStudies from './Pages/SmartStudies';
+import QuickRevision from './Pages/QuickRevision';
 import Layout from './components/layout/Layout';
 import PrivateRoute from './components/common/PrivateRoute';
 import AdminRoute from './components/common/AdminRoute';
@@ -80,6 +81,16 @@ function App() {
             <PrivateRoute>
               <Layout>
                 <SmartStudies />
+              </Layout>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/quick-rvsn"
+          element={
+            <PrivateRoute>
+              <Layout>
+                <QuickRevision />
               </Layout>
             </PrivateRoute>
           }

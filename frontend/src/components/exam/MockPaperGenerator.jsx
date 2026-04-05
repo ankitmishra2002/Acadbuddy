@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { BookOpen, Sparkles } from 'lucide-react';
 import api from '../../services/api';
+import { useToast } from '../../context/ToastContext';
 
 const MockPaperGenerator = ({ subjectId }) => {
+  const toast = useToast();
   const [formData, setFormData] = useState({
     shortCount: 5,
     longCount: 3
@@ -20,7 +22,7 @@ const MockPaperGenerator = ({ subjectId }) => {
       });
       setGeneratedContent(response.data);
     } catch (error) {
-      alert('Failed to generate mock paper: ' + (error.response?.data?.message || error.message));
+      toast.error('Failed to generate mock paper: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
     }

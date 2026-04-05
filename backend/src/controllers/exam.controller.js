@@ -181,6 +181,70 @@ export const generateRapidRevisionSheets = async (req, res) => {
   }
 };
 
+export const generateQuickRevision = async (req, res) => {
+  try {
+    const { topicDescription, questionCount, extraDetails } = req.body;
+    if (!topicDescription || !String(topicDescription).trim()) {
+      return res.status(400).json({ message: 'Topic or context description is required' });
+    }
+
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const styleProfile = await getOrCreateStyleProfile(req.userId);
+
+    const subjectLabel =
+      String(topicDescription)
+        .trim()
+        .slice(0, 80) + (String(topicDescription).length > 80 ? '…' : '');
+
+    const userContext = {
+      university: user.university || '—',
+      branch: user.branch || '—',
+      semester: user.semester ?? '—',
+      subject: subjectLabel || 'Quick revision',
+    };
+
+    const generated = await aiOrchestrator.generateQuickRevisionFromPrompt(userContext, styleProfile, {
+      topicDescription: String(topicDescription).trim(),
+      questionCount: questionCount ?? 5,
+      extraDetails: extraDetails != null ? String(extraDetails) : '',
+    });
+
+    const subject = await Subject.findOne({ userId: req.userId }).sort({ createdAt: 1 });
+
+    if (subject) {
+      const content = new GeneratedContent({
+        userId: req.userId,
+        subjectId: subject._id,
+        type: 'revision_sheet',
+        title: `Quick revision: ${subjectLabel.slice(0, 60)}`,
+        topic: subjectLabel.slice(0, 120),
+        content: generated,
+        styleProfileId: styleProfile._id,
+        contextUsed: [],
+        metadata: {
+          generatedAt: new Date(),
+          depth: 'quick_revision_prompt',
+        },
+      });
+      await content.save();
+      return res.status(201).json({ content: generated, savedContentId: content._id });
+    }
+
+    res.status(200).json({ content: generated, savedContentId: null });
+  } catch (error) {
+    if (error.message?.includes('API key') || error.message?.includes('authentication failed')) {
+      return res.status(500).json({
+        message: 'AI service configuration error. Please check your OPENROUTER_API_KEY in the .env file.',
+      });
+    }
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const generateMockPaper = async (req, res) => {
   try {
     const { subjectId, shortCount, longCount } = req.body;

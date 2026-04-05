@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Calendar, Sparkles } from 'lucide-react';
 import api from '../../services/api';
+import { useToast } from '../../context/ToastContext';
 
 const PlannerView = ({ subjectId, examPlan, onUpdate }) => {
+  const toast = useToast();
   const [formData, setFormData] = useState({
     examDate: '',
     hoursPerDay: 3
@@ -12,7 +14,7 @@ const PlannerView = ({ subjectId, examPlan, onUpdate }) => {
   const handleGenerate = async (e) => {
     e.preventDefault();
     if (!examPlan?.blueprint) {
-      alert('Please generate exam blueprint first');
+      toast.warning('Generate an exam blueprint first.');
       return;
     }
     setLoading(true);
@@ -23,7 +25,7 @@ const PlannerView = ({ subjectId, examPlan, onUpdate }) => {
       });
       onUpdate();
     } catch (error) {
-      alert('Failed to generate planner: ' + (error.response?.data?.message || error.message));
+      toast.error('Failed to generate planner: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
     }

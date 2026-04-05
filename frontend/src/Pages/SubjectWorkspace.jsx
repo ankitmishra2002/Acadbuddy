@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { FileText, FileCheck, Presentation, GraduationCap, Brain, ArrowLeft } from 'lucide-react';
 import api from '../services/api';
+import { recordFeatureVisit } from '../utils/recentActivity';
 import NotesGenerator from '../components/content/NotesGenerator';
 import ReportGenerator from '../components/content/ReportGenerator';
 import PPTGenerator from '../components/content/PPTGenerator';
@@ -29,6 +30,24 @@ const SubjectWorkspace = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!subject) return;
+    const tabLabels = {
+      context: 'Context',
+      notes: 'Study Notes',
+      report: 'Reports',
+      ppt: 'PPT',
+      exam: 'Exam Mode',
+      content: 'My Content',
+    };
+    const tabLabel = tabLabels[activeTab] || activeTab;
+    recordFeatureVisit({
+      id: `workspace-${id}-${activeTab}`,
+      label: `${tabLabel} · ${subject.name}`,
+      path: `/subjects/${id}`,
+    });
+  }, [id, activeTab, subject]);
 
   if (loading) {
     return <div className="text-center py-12">Loading...</div>;

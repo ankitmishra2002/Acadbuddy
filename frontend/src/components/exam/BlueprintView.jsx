@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Sparkles, TrendingUp } from 'lucide-react';
 import api from '../../services/api';
+import { useToast } from '../../context/ToastContext';
 
 const BlueprintView = ({ subjectId, examPlan, onUpdate }) => {
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
 
   const handleGenerate = async () => {
@@ -11,7 +13,7 @@ const BlueprintView = ({ subjectId, examPlan, onUpdate }) => {
       await api.post('/exam/blueprint', { subjectId });
       onUpdate();
     } catch (error) {
-      alert('Failed to generate blueprint: ' + (error.response?.data?.message || error.message));
+      toast.error('Failed to generate blueprint: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
     }

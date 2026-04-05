@@ -5,8 +5,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import { downloadAsMarkdown } from '../../utils/downloadUtils';
+import { useToast } from '../../context/ToastContext';
 
 const ContentList = ({ subjectId }) => {
+  const toast = useToast();
   const [contents, setContents] = useState([]);
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
@@ -46,7 +48,7 @@ const ContentList = ({ subjectId }) => {
       await api.delete(`/content/${id}`);
       fetchContents();
     } catch (error) {
-      alert('Failed to delete content');
+      toast.error('Failed to delete content');
     }
   };
 
@@ -87,11 +89,11 @@ const ContentList = ({ subjectId }) => {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
-      alert('Content shared to community successfully!');
+      toast.success('Content shared to community successfully.');
       setShowShareModal(false);
       setSharingContent(null);
     } catch (error) {
-      alert('Failed to share content: ' + (error.response?.data?.message || error.message));
+      toast.error('Failed to share content: ' + (error.response?.data?.message || error.message));
     }
   };
 

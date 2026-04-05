@@ -4,8 +4,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import api from '../services/api';
 import { Link } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
+import { useToast } from '../context/ToastContext';
 
 const Community = () => {
+  const toast = useToast();
   const [posts, setPosts] = useState([]);
   const [filters, setFilters] = useState({
     university: '',
@@ -91,10 +93,10 @@ const Community = () => {
         cloudinaryUrl: response.data.url,
         cloudinaryPublicId: response.data.public_id
       }));
-      alert('File uploaded to Cloudinary successfully!');
+      toast.success('File uploaded to Cloudinary successfully.');
     } catch (error) {
       console.error('Cloudinary upload error:', error);
-      alert('Failed to upload file to Cloudinary. You can still upload directly.');
+      toast.error('Could not upload to Cloudinary. You can still upload directly.');
     } finally {
       setUploadingToCloudinary(false);
     }
@@ -106,7 +108,7 @@ const Community = () => {
 
     try {
       if (!formData.title || !formData.subject || !formData.topic || !formData.semester) {
-        alert('Please fill all required fields');
+        toast.warning('Please fill all required fields.');
         setSubmitting(false);
         return;
       }
@@ -151,9 +153,10 @@ const Community = () => {
         cloudinaryPublicId: null
       });
       fetchPosts();
+      toast.success('Post created successfully.');
     } catch (e) {
       console.error('Create post error:', e);
-      alert('Failed to create post');
+      toast.error('Failed to create post');
     } finally {
       setSubmitting(false);
     }
@@ -172,7 +175,7 @@ const Community = () => {
       fetchPosts();
     } catch (error) {
       console.error('Delete post error:', error);
-      alert(error.response?.data?.message || 'Failed to delete post');
+      toast.error(error.response?.data?.message || 'Failed to delete post');
     }
   };
 

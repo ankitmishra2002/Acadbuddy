@@ -3,8 +3,10 @@ import { Plus, BookOpen, Trash2, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../services/api';
+import { useToast } from '../context/ToastContext';
 
 const Subjects = () => {
+  const toast = useToast();
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -32,8 +34,9 @@ const Subjects = () => {
       setShowModal(false);
       setFormData({ name: '', code: '' });
       fetchSubjects();
+      toast.success('Subject created.');
     } catch (error) {
-      alert('Failed to create subject');
+      toast.error('Failed to create subject');
     }
   };
 
@@ -43,7 +46,7 @@ const Subjects = () => {
       await api.delete(`/subjects/${id}`);
       fetchSubjects();
     } catch (error) {
-      alert('Failed to delete subject');
+      toast.error('Failed to delete subject');
     }
   };
 

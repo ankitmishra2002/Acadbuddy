@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { X, Clock, Play, Pause, Square } from 'lucide-react';
 import api from '../services/api';
+import { recordFeatureVisit } from '../utils/recentActivity';
 
 const FocusMode = () => {
   const { mode, contentId } = useParams();
@@ -11,6 +12,15 @@ const FocusMode = () => {
   const [sessionId, setSessionId] = useState(null);
   const [timer, setTimer] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
+
+  useEffect(() => {
+    if (!mode || !contentId) return;
+    recordFeatureVisit({
+      id: `focus-${mode}-${contentId}`,
+      label: `Focus mode · ${mode}`,
+      path: `/focus/${mode}/${contentId}`,
+    });
+  }, [mode, contentId]);
 
   useEffect(() => {
     fetchContent();

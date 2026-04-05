@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { Plus, Check, Trash2, Edit, Layers, Settings, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../services/api';
+import { useToast } from '../context/ToastContext';
 
 const Styles = () => {
+  const toast = useToast();
   const [styles, setStyles] = useState([]);
   const [defaults, setDefaults] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -49,7 +51,7 @@ const Styles = () => {
       });
       fetchStyles();
     } catch (error) {
-      alert('Failed to create style');
+      toast.error('Failed to create style');
     }
   };
 
@@ -72,8 +74,9 @@ const Styles = () => {
         instructions: ''
       });
       fetchStyles();
+      toast.success(editingStyle ? 'Style updated.' : 'Style saved.');
     } catch (error) {
-      alert('Failed to save style');
+      toast.error('Failed to save style');
     }
   };
 
@@ -96,7 +99,7 @@ const Styles = () => {
       await api.delete(`/styles/${id}`);
       fetchStyles();
     } catch (error) {
-      alert('Failed to delete style');
+      toast.error('Failed to delete style');
     }
   };
 
@@ -105,7 +108,7 @@ const Styles = () => {
       await api.put(`/styles/${id}/activate`);
       fetchStyles();
     } catch (error) {
-      alert('Failed to activate style');
+      toast.error('Failed to activate style');
     }
   };
 

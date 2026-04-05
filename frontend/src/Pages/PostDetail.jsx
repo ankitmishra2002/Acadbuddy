@@ -4,8 +4,10 @@ import { ArrowLeft, ThumbsUp, ThumbsDown, Copy, Eye, FileText, Download } from '
 import api from '../services/api';
 import useAuthStore from '../store/authStore';
 import { downloadAsMarkdown } from '../utils/downloadUtils';
+import { useToast } from '../context/ToastContext';
 
 const PostDetail = () => {
+  const toast = useToast();
   const { id } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
@@ -85,7 +87,7 @@ const PostDetail = () => {
       await api.post(`/community/posts/${id}/vote`, { voteType });
       fetchPost();
     } catch (error) {
-      alert('Failed to vote');
+      toast.error('Failed to vote');
     }
   };
 
@@ -100,7 +102,7 @@ const PostDetail = () => {
       setCommentText('');
       fetchComments();
     } catch (error) {
-      alert('Failed to post comment');
+      toast.error('Failed to post comment');
     }
   };
 
@@ -112,10 +114,10 @@ const PostDetail = () => {
     try {
       await api.post(`/community/posts/${id}/clone`, { subjectId });
       setShowCloneModal(false);
-      alert('Content cloned to your workspace!');
+      toast.success('Content cloned to your workspace.');
       navigate(`/subjects/${subjectId}`);
     } catch (error) {
-      alert('Failed to clone content');
+      toast.error('Failed to clone content');
     }
   };
 

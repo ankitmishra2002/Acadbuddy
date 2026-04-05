@@ -12,6 +12,7 @@ import {
 import api from '../services/api';
 import useAuthStore from '../store/authStore';
 import { Link, useNavigate } from 'react-router-dom';
+import { useToast } from '../context/ToastContext';
 
 const COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
@@ -88,6 +89,7 @@ const AdminDashboard = () => {
 
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
+  const toast = useToast();
 
   /* ── Fetch Users ── */
   const fetchUsers = async () => {
@@ -125,14 +127,18 @@ const AdminDashboard = () => {
       setUsers(prev =>
         prev.map(u => u._id === id ? { ...u, status: u.status === 'blocked' ? 'active' : 'blocked' } : u)
       );
-    } catch (err) { alert('Failed to update user status.'); }
+    } catch (err) {
+      toast.error('Failed to update user status.');
+    }
   };
 
   const handleDeleteUser = async (id) => {
     try {
       await api.delete(`/admin/users/${id}`);
       setUsers(prev => prev.filter(u => u._id !== id));
-    } catch (err) { alert('Failed to delete user.'); }
+    } catch (err) {
+      toast.error('Failed to delete user.');
+    }
   };
 
   /* ── Post Actions ── */
@@ -142,14 +148,18 @@ const AdminDashboard = () => {
       setPosts(prev =>
         prev.map(p => p._id === id ? { ...p, status: p.status === 'hidden' ? 'active' : 'hidden' } : p)
       );
-    } catch (err) { alert('Failed to update post status.'); }
+    } catch (err) {
+      toast.error('Failed to update post status.');
+    }
   };
 
   const handleDeletePost = async (id) => {
     try {
       await api.delete(`/admin/posts/${id}`);
       setPosts(prev => prev.filter(p => p._id !== id));
-    } catch (err) { alert('Failed to delete post.'); }
+    } catch (err) {
+      toast.error('Failed to delete post.');
+    }
   };
 
   /* ── Confirm helper ── */

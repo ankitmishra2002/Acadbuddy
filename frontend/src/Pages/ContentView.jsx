@@ -6,8 +6,10 @@ import api from '../services/api';
 import Layout from '../components/layout/Layout';
 import { downloadAsMarkdown } from '../utils/downloadUtils';
 import useAuthStore from '../store/authStore';
+import { useToast } from '../context/ToastContext';
 
 const ContentView = () => {
+  const toast = useToast();
   const { contentId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -70,10 +72,10 @@ const ContentView = () => {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
-      alert('Content shared to community successfully!');
+      toast.success('Content shared to community successfully.');
       setShowShareModal(false);
     } catch (error) {
-      alert('Failed to share content: ' + (error.response?.data?.message || error.message));
+      toast.error('Failed to share content: ' + (error.response?.data?.message || error.message));
     }
   };
 
