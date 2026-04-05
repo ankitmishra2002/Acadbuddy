@@ -1,48 +1,9 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import dotenv from 'dotenv';
+import { assertOpenRouterConfigured, openRouterChat } from './openRouterClient.js';
 
-// Load environment variables
 dotenv.config();
 
-const API_KEY = process.env.GEMINI_API_KEY || '';
-const MODEL_NAME = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-
-// Initialize the Google Generative AI client
-const genAI = new GoogleGenerativeAI(API_KEY);
-
-/**
- * Test API key function without unnecessary diagnostics
- */
-export async function testAPIKey() {
-  if (!API_KEY) {
-    return {
-      valid: false,
-      error: 'GEMINI_API_KEY is not configured in .env'
-    };
-  }
-
-  try {
-    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
-    const result = await model.generateContent("Say 'test' if you can read this.");
-    
-    if (result.response.text()) {
-      return {
-        valid: true,
-        message: 'API key is valid and working via Google Generative AI!'
-      };
-    }
-
-    return {
-      valid: false,
-      error: 'Empty response from Google Generative AI'
-    };
-  } catch (error) {
-    return {
-      valid: false,
-      error: error.message
-    };
-  }
-}
+export { testOpenRouterApiKey as testAPIKey } from './openRouterClient.js';
 
 /**
  * Base prompt template builder
@@ -105,23 +66,17 @@ const parseAIResponse = (response, fallbackStructure) => {
 };
 
 /**
- * Internal helper to generate content using Gemini API
+ * Internal helper to generate content via OpenRouter (OpenAI-compatible chat API)
  */
 const internalGenerateContent = async (systemInstruction, userPrompt) => {
-  if (!API_KEY) {
-    throw new Error('GEMINI_API_KEY is not configured in .env');
-  }
-
-  const model = genAI.getGenerativeModel({
-    model: MODEL_NAME,
-    systemInstruction,
-    generationConfig: {
-      temperature: 0.7,
-    }
+  assertOpenRouterConfigured();
+  return openRouterChat({
+    messages: [
+      { role: 'system', content: systemInstruction },
+      { role: 'user', content: userPrompt },
+    ],
+    temperature: 0.7,
   });
-
-  const result = await model.generateContent(userPrompt);
-  return result.response.text();
 };
 
 /**

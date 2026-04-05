@@ -1,10 +1,10 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import dotenv from 'dotenv';
+import pdfParse from 'pdf-parse';
+import { assertOpenRouterConfigured, openRouterChat } from './openRouterClient.js';
 
 dotenv.config();
 
-const API_KEY = process.env.GEMINI_API_KEY || '';
-const MODEL_NAME = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const MAX_PDF_CHARS = 100000;
 
 const parseJsonFromModel = (text, fallback) => {
   if (!text || typeof text !== 'string') return fallback;
@@ -22,13 +22,44 @@ const parseJsonFromModel = (text, fallback) => {
   }
 };
 
-const buildParts = (buffer, mimeType, textPrompt) => {
+/**
+ * PDFs are sent as extracted text (same outcome as before; OpenRouter vision models vary on raw PDF bytes).
+ * Images use multimodal user content (text + image URL).
+ */
+async function buildUserMessages(buffer, mimeType, textPrompt) {
+  if (mimeType === 'application/pdf') {
+    const pdfData = await pdfParse(buffer);
+    let docText = (pdfData.text || '').trim();
+    if (!docText) {
+      throw new Error(
+        'Could not extract text from this PDF. Try a clearer scan, export pages as images, or use JPEG/PNG/WebP.',
+      );
+    }
+    if (docText.length > MAX_PDF_CHARS) {
+      docText = `${docText.slice(0, MAX_PDF_CHARS)}\n\n[... document truncated for length ...]`;
+    }
+    const combined = `The user uploaded a PDF. Below is extracted text from the document.
+
+---
+${docText}
+---
+
+${textPrompt}`;
+    return [{ role: 'user', content: combined }];
+  }
+
   const base64 = buffer.toString('base64');
+  const dataUrl = `data:${mimeType};base64,${base64}`;
   return [
-    { inlineData: { mimeType, data: base64 } },
-    { text: textPrompt },
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: textPrompt },
+        { type: 'image_url', imageUrl: { url: dataUrl } },
+      ],
+    },
   ];
-};
+}
 
 export async function runSmartStudiesAnalysis({
   buffer,
@@ -38,15 +69,7 @@ export async function runSmartStudiesAnalysis({
   targetWordCount = 400,
   keywordFocus = '',
 }) {
-  if (!API_KEY) {
-    throw new Error('GEMINI_API_KEY is not configured in .env');
-  }
-
-  const genAI = new GoogleGenerativeAI(API_KEY);
-  const model = genAI.getGenerativeModel({
-    model: MODEL_NAME,
-    generationConfig: { temperature: 0.4 },
-  });
+  assertOpenRouterConfigured();
 
   const words =
     typeof targetWordCount === 'number' && Number.isFinite(targetWordCount) && targetWordCount > 0
@@ -71,8 +94,8 @@ Task:
 Respond with ONLY valid JSON (no markdown fences) in this exact shape:
 {"summary":"markdown string here"}`;
 
-    const result = await model.generateContent(buildParts(buffer, mimeType, prompt));
-    const raw = result.response.text();
+    const messages = await buildUserMessages(buffer, mimeType, prompt);
+    const raw = await openRouterChat({ messages, temperature: 0.4 });
     const parsed = parseJsonFromModel(raw, null);
     if (parsed?.summary && typeof parsed.summary === 'string') {
       return { mode: 'summarize', summary: parsed.summary };
@@ -95,8 +118,8 @@ Task:
 Respond with ONLY valid JSON (no markdown fences) in this exact shape:
 {"keywords":["phrase one","phrase two"],"excerpt":"plain text paragraph"}`;
 
-    const result = await model.generateContent(buildParts(buffer, mimeType, prompt));
-    const raw = result.response.text();
+    const messages = await buildUserMessages(buffer, mimeType, prompt);
+    const raw = await openRouterChat({ messages, temperature: 0.4 });
     const parsed = parseJsonFromModel(raw, { keywords: [], excerpt: '' });
     const keywords = Array.isArray(parsed.keywords)
       ? parsed.keywords.map((k) => String(k).trim()).filter(Boolean)

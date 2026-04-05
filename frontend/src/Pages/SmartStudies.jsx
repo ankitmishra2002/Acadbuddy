@@ -277,7 +277,7 @@ const SmartStudies = () => {
               </button>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            <div className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain">
               <div
                 className={`grid gap-5 p-4 sm:p-5 ${
                   isSummarize ? 'lg:grid-cols-2 lg:items-start' : 'grid-cols-1'
@@ -340,7 +340,7 @@ const SmartStudies = () => {
                       >
                         {isSummarize ? 'Preview' : 'File preview'}
                       </div>
-                      <div className="flex min-h-[180px] flex-1 items-center justify-center overflow-auto p-3">
+                      <div className="relative flex min-h-[180px] flex-1 items-center justify-center overflow-auto p-3">
                         {isPdf ? (
                           <iframe
                             title="PDF preview"
@@ -474,7 +474,7 @@ const SmartStudies = () => {
                   {result?.mode === 'summarize' && result.summary && (
                     <div>
                       <h3 className="mb-3 text-sm font-bold text-slate-800 dark:text-slate-200">Summary</h3>
-                      <div className="max-h-[min(45vh,380px)] overflow-y-auto rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-950 [&_h1]:text-base [&_h1]:font-bold [&_h2]:text-sm [&_h2]:font-bold [&_h3]:font-semibold [&_li]:my-0.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-5 text-sm text-slate-800 dark:text-slate-200">
+                      <div className="relative max-h-[min(45vh,380px)] overflow-y-auto rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-950 [&_h1]:text-base [&_h1]:font-bold [&_h2]:text-sm [&_h2]:font-bold [&_h3]:font-semibold [&_li]:my-0.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-5 text-sm text-slate-800 dark:text-slate-200">
                         <ReactMarkdown>{result.summary}</ReactMarkdown>
                       </div>
                     </div>
@@ -504,7 +504,7 @@ const SmartStudies = () => {
                           <h3 className="mb-2 font-mono text-xs font-bold uppercase tracking-widest text-violet-800 dark:text-violet-300">
                             Highlighted excerpt
                           </h3>
-                          <div className="max-h-[min(36vh,280px)] overflow-y-auto rounded-xl border border-violet-200 bg-white/90 p-4 dark:border-violet-900 dark:bg-slate-950/80">
+                          <div className="relative max-h-[min(36vh,280px)] overflow-y-auto rounded-xl border border-violet-200 bg-white/90 p-4 dark:border-violet-900 dark:bg-slate-950/80">
                             <p className="text-sm leading-relaxed text-slate-800 dark:text-slate-200">
                               {highlightExcerpt(result.excerpt, result.keywords)}
                             </p>
@@ -533,7 +533,7 @@ const SmartStudies = () => {
         <div>
           <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 dark:bg-blue-950/50 px-3 py-1 text-xs font-semibold text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-900/60 mb-3">
             <Sparkles size={14} />
-            Multimodal · Gemini
+            Multimodal · OpenRouter
           </div>
           <h1 className="text-3xl sm:text-4xl font-black bg-clip-text text-transparent bg-gradient-to-br from-indigo-700 via-blue-700 to-slate-800 dark:from-indigo-400 dark:via-blue-400 dark:to-white tracking-tight">
             Smart Studies
@@ -618,7 +618,7 @@ const SmartStudies = () => {
               Your recent runs will appear here after you summarize or extract keywords.
             </p>
           ) : (
-            <ul className="space-y-2 flex-1 overflow-y-auto max-h-[420px] scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700 pr-1">
+            <ul className="relative space-y-2 flex-1 overflow-y-auto max-h-[420px] scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700 pr-1">
               {sessions.map((s) => (
                 <li
                   key={s.id}

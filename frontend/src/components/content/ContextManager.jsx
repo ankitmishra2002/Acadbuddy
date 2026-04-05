@@ -89,7 +89,11 @@ const ContextManager = ({ subjectId }) => {
       fetchContexts();
     } catch (error) {
       console.error('Upload error:', error);
-      alert('Failed to upload context');
+      const msg =
+        error.response?.data?.message ||
+        error.message ||
+        'Failed to upload context';
+      alert(msg);
     }
   };
 
