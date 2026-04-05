@@ -5,20 +5,20 @@ import PrivateRoute from './components/common/PrivateRoute.jsx';
 import AdminRoute from './components/common/AdminRoute.jsx';
 
 const Layout = lazy(() => import('./components/layout/Layout'));
-const Landing = lazy(() => import('./Pages/Landing.jsx'));
-const Login = lazy(() => import('./Pages/Login.jsx'));
-const Dashboard = lazy(() => import('./Pages/Dashboard.jsx'));
-const Subjects = lazy(() => import('./Pages/Subjects.jsx'));
-const SubjectWorkspace = lazy(() => import('./Pages/SubjectWorkspace.jsx'));
-const Styles = lazy(() => import('./Pages/Styles.jsx'));
-const Community = lazy(() => import('./Pages/Community.jsx'));
-const PostDetail = lazy(() => import('./Pages/PostDetail.jsx'));
-const FocusMode = lazy(() => import('./Pages/FocusMode.jsx'));
-const ContentView = lazy(() => import('./Pages/ContentView.jsx'));
-const Profile = lazy(() => import('./Pages/Profile.jsx'));
-const AdminDashboard = lazy(() => import('./Pages/AdminDashboard.jsx'));
-const SmartStudies = lazy(() => import('./Pages/SmartStudies.jsx'));
-const QuickRevision = lazy(() => import('./Pages/QuickRevision.jsx'));
+const Landing = lazy(() => import('./pages/Landing.jsx'));
+const Login = lazy(() => import('./pages/Login.jsx'));
+const Dashboard = lazy(() => import('./pages/Dashboard.jsx'));
+const Subjects = lazy(() => import('./pages/Subjects.jsx'));
+const SubjectWorkspace = lazy(() => import('./pages/SubjectWorkspace.jsx'));
+const Styles = lazy(() => import('./pages/Styles.jsx'));
+const Community = lazy(() => import('./pages/Community.jsx'));
+const PostDetail = lazy(() => import('./pages/PostDetail.jsx'));
+const FocusMode = lazy(() => import('./pages/FocusMode.jsx'));
+const ContentView = lazy(() => import('./pages/ContentView.jsx'));
+const Profile = lazy(() => import('./pages/Profile.jsx'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard.jsx'));
+const SmartStudies = lazy(() => import('./pages/SmartStudies.jsx'));
+const QuickRevision = lazy(() => import('./pages/QuickRevision.jsx'));
 
 function RouteFallback() {
   return (
