@@ -171,7 +171,7 @@ export const proxyContextFile = async (req, res) => {
 
     const download = req.query.download === '1';
     const rawName = fileUrl.split('/').pop()?.split('?')[0] || '';
-    const safeFilename =
+    let safeFilename =
       rawName && rawName.length < 200
         ? rawName.replace(/[^\w.\-() ]+/g, '_')
         : `${String(context.title || 'file').replace(/[^\w.\-() ]+/g, '_')}.bin`;
@@ -185,7 +185,34 @@ export const proxyContextFile = async (req, res) => {
       validateStatus: (status) => status >= 200 && status < 400
     });
 
-    const contentType = upstream.headers['content-type'] || 'application/octet-stream';
+    let contentType = upstream.headers['content-type'] || 'application/octet-stream';
+    const pathBeforeQuery = fileUrl.split('?')[0];
+    const looksLikePdfPath = /\.pdf$/i.test(pathBeforeQuery) || /\.pdf\//i.test(pathBeforeQuery);
+    if (
+      looksLikePdfPath &&
+      !/^application\/pdf/i.test(String(contentType).split(';')[0].trim())
+    ) {
+      contentType = 'application/pdf';
+    }
+    if (looksLikePdfPath && !/\.pdf$/i.test(safeFilename)) {
+      const stem =
+        String(context.title || safeFilename || 'document')
+          .replace(/\.[^.]+$/, '')
+          .replace(/[^\w.\-() ]+/g, '_') || 'document';
+      safeFilename = `${stem}.pdf`;
+    }
+    if (
+      download &&
+      /application\/pdf|\/pdf/i.test(contentType) &&
+      !/\.pdf$/i.test(safeFilename)
+    ) {
+      const stem =
+        String(context.title || safeFilename || 'document')
+          .replace(/\.[^.]+$/, '')
+          .replace(/[^\w.\-() ]+/g, '_') || 'document';
+      safeFilename = `${stem}.pdf`;
+    }
+
     res.setHeader('Content-Type', contentType);
     res.setHeader('Cache-Control', 'public, max-age=3600');
 

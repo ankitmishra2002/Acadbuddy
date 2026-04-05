@@ -13,7 +13,7 @@ console.log('Cloudinary configuration loaded and initialized successfully');
 // ─── File size limits per type (in bytes) ─────────────────────────────────────
 const FILE_SIZE_LIMITS = {
     image: 5 * 1024 * 1024,  //  5 MB  — jpg, png, gif, webp, svg
-    pdf: 20 * 1024 * 1024,  // 20 MB  — pdf
+    pdf: 10 * 1024 * 1024,  // 10 MB  — pdf (keeps uploads reliable; aligns with free-tier friendly limits)
     video: 100 * 1024 * 1024, // 100 MB — mp4, mov, avi, mkv, webm
     audio: 25 * 1024 * 1024,  // 25 MB  — mp3, wav, ogg, aac, flac
     doc: 10 * 1024 * 1024,  // 10 MB  — docx, pptx, xlsx, txt, csv

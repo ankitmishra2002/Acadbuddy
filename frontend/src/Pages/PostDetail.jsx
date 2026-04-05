@@ -4,7 +4,11 @@ import { ArrowLeft, ThumbsUp, ThumbsDown, Copy, Eye, FileText, Download } from '
 import api from '../services/api';
 import useAuthStore from '../store/authStore';
 import { downloadAsMarkdown } from '../utils/downloadUtils';
-import { cloudinaryForceDownloadUrl } from '../utils/cloudinaryUrls';
+import {
+  cloudinaryForceDownloadUrl,
+  cloudinaryInlineViewUrl,
+  isCloudinaryRawUploadUrl,
+} from '../utils/cloudinaryUrls';
 import { resolveSlideBullets, resolveSpeakerNotes } from '../utils/pptSlideUtils';
 import { useToast } from '../context/ToastContext';
 
@@ -201,21 +205,17 @@ const PostDetail = () => {
                   const publicIdMatch = content.match(/Public ID:\s*([^\s]+)/);
                   if (urlMatch) {
                     const fileUrl = urlMatch[1];
-                    // Check if it's a PDF - Cloudinary raw files or URLs with .pdf
-                    const isPDF = fileUrl.toLowerCase().includes('.pdf') || 
-                                 fileUrl.includes('format=pdf') || 
-                                 fileUrl.includes('resource_type=raw') ||
-                                 (publicIdMatch && publicIdMatch[1].toLowerCase().endsWith('.pdf'));
-                    
-                    // For Cloudinary PDFs, ensure the URL is properly formatted
-                    // Cloudinary raw files (PDFs) can be viewed directly
-                    let pdfUrl = fileUrl;
-                    
-                    // If it's a Cloudinary URL but doesn't have .pdf extension, try to add it
-                    if (isPDF && fileUrl.includes('res.cloudinary.com') && !fileUrl.includes('.pdf')) {
-                      // Cloudinary raw files should work as-is, but we can try adding format
-                      pdfUrl = fileUrl;
-                    }
+                    // PDFs are stored as raw/upload — URL may omit “.pdf” in the path
+                    const isPDF =
+                      fileUrl.toLowerCase().includes('.pdf') ||
+                      fileUrl.includes('format=pdf') ||
+                      fileUrl.includes('/raw/upload/') ||
+                      (publicIdMatch && publicIdMatch[1].toLowerCase().endsWith('.pdf'));
+
+                    const pdfViewUrl =
+                      fileUrl.includes('res.cloudinary.com') && isCloudinaryRawUploadUrl(fileUrl)
+                        ? cloudinaryInlineViewUrl(fileUrl)
+                        : fileUrl;
                     
                     return (
                       <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
@@ -227,33 +227,21 @@ const PostDetail = () => {
                           </div>
                         </div>
                         {isPDF ? (
-                          <div className="space-y-3">
-                            {/* Try iframe first, fallback to object tag */}
-                            <div className="w-full h-96 border border-gray-300 rounded-lg overflow-hidden">
-                              <iframe
-                                src={`${pdfUrl}#toolbar=0`}
-                                className="w-full h-full"
-                                title="PDF Viewer"
-                                type="application/pdf"
-                                onError={(e) => {
-                                  // If iframe fails, try object tag
-                                  e.target.style.display = 'none';
-                                  const objectTag = document.createElement('object');
-                                  objectTag.data = pdfUrl;
-                                  objectTag.type = 'application/pdf';
-                                  objectTag.className = 'w-full h-full';
-                                  objectTag.style.display = 'block';
-                                  e.target.parentElement.appendChild(objectTag);
-                                }}
-                              />
-                            </div>
-                            <div className="flex gap-2">
+                          <div className="space-y-4">
+                            <p className="text-sm text-gray-600 bg-white border border-gray-200 rounded-lg px-4 py-3">
+                              Hosted PDFs cannot be embedded here (Cloudinary blocks iframes for security).
+                              Open in a new tab to view, or use download.
+                            </p>
+                            <div className="flex flex-wrap gap-2">
                               <button
-                                onClick={() => window.open(fileUrl, '_blank')}
+                                type="button"
+                                onClick={() =>
+                                  window.open(pdfViewUrl, '_blank', 'noopener,noreferrer')
+                                }
                                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                               >
                                 <Eye size={18} />
-                                Open in New Tab
+                                Open PDF in new tab
                               </button>
                               <button
                                 type="button"
@@ -282,8 +270,15 @@ const PostDetail = () => {
                 }
                 // Check if content is a direct URL
                 if (content.startsWith('http://') || content.startsWith('https://')) {
-                  const isPDF = content.toLowerCase().endsWith('.pdf') || content.includes('.pdf') || content.includes('format=pdf');
-                  
+                  const isPDF =
+                    content.toLowerCase().includes('.pdf') ||
+                    content.includes('format=pdf') ||
+                    content.includes('/raw/upload/');
+                  const externalPdfViewUrl =
+                    content.includes('res.cloudinary.com') && isCloudinaryRawUploadUrl(content)
+                      ? cloudinaryInlineViewUrl(content)
+                      : content;
+
                   return (
                     <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
                       <div className="flex items-center gap-3 mb-4">
@@ -294,23 +289,39 @@ const PostDetail = () => {
                         </div>
                       </div>
                       {isPDF ? (
-                        <div className="space-y-3">
-                          <iframe
-                            src={content}
-                            className="w-full h-96 border border-gray-300 rounded-lg"
-                            title="PDF Viewer"
-                          />
-                          <button
-                            onClick={() => window.open(content, '_blank')}
-                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                          >
-                            <Eye size={18} />
-                            Open in New Tab
-                          </button>
+                        <div className="space-y-4">
+                          <p className="text-sm text-gray-600 bg-white border border-gray-200 rounded-lg px-4 py-3">
+                            This PDF cannot be embedded on this page. Open it in a new tab instead.
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                window.open(externalPdfViewUrl, '_blank', 'noopener,noreferrer')
+                              }
+                              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            >
+                              <Eye size={18} />
+                              Open PDF in new tab
+                            </button>
+                            {content.includes('res.cloudinary.com') && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  window.open(cloudinaryForceDownloadUrl(content), '_blank', 'noopener,noreferrer')
+                                }
+                                className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                              >
+                                <Download size={18} />
+                                Download
+                              </button>
+                            )}
+                          </div>
                         </div>
                       ) : (
                         <button
-                          onClick={() => window.open(content, '_blank')}
+                          type="button"
+                          onClick={() => window.open(content, '_blank', 'noopener,noreferrer')}
                           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                         >
                           <Eye size={18} />

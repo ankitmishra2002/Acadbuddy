@@ -8,8 +8,12 @@ import { downloadAsMarkdown } from '../../utils/downloadUtils';
 import {
   getContextFileUrl,
   isCloudinaryDeliveryUrl,
+  isCloudinaryRawUploadUrl,
   cloudinaryForceDownloadUrl,
+  cloudinaryInlineViewUrl,
 } from '../../utils/cloudinaryUrls';
+import { MAX_CLOUDINARY_PDF_BYTES, maxPdfSizeLabelMb } from '../../constants/uploadLimits';
+import { coerceBlobForPdfViewer } from '../../utils/pdfViewerBlob';
 
 const ContextManager = ({ subjectId }) => {
   const navigate = useNavigate();
@@ -44,6 +48,15 @@ const ContextManager = ({ subjectId }) => {
 
   const handleCloudinaryUpload = async (fileToUpload) => {
     if (!fileToUpload) return;
+    if (
+      fileToUpload.type === 'application/pdf' &&
+      fileToUpload.size > MAX_CLOUDINARY_PDF_BYTES
+    ) {
+      toast.error(
+        `PDF must be ${maxPdfSizeLabelMb} MB or smaller (your file is ${(fileToUpload.size / (1024 * 1024)).toFixed(2)} MB).`
+      );
+      return;
+    }
     setUploadingToCloudinary(true);
     try {
       const formDataToSend = new FormData();
@@ -56,7 +69,14 @@ const ContextManager = ({ subjectId }) => {
       toast.success('File uploaded to cloud successfully.');
     } catch (error) {
       console.error('Cloudinary upload error:', error);
-      toast.error('Could not upload to cloud. You can still upload directly.');
+      const msg =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        (error.response?.status === 413
+          ? `File too large. PDFs must be ${maxPdfSizeLabelMb} MB or under.`
+          : null) ||
+        'Could not upload to cloud. You can still upload directly.';
+      toast.error(msg);
     } finally {
       setUploadingToCloudinary(false);
     }
@@ -133,55 +153,65 @@ const ContextManager = ({ subjectId }) => {
       throw new Error(`Server error ${resp.status}: ${errText}`);
     }
 
+    const contentType = resp.headers.get('content-type') || '';
     const blob = await resp.blob();
-    // Extract filename from Content-Disposition if available
     const disposition = resp.headers.get('content-disposition') || '';
     const nameMatch = disposition.match(/filename[^;=\n]*=(['"]?)([^'"\n;]+)\1/);
     const filename = nameMatch ? nameMatch[2].trim() : null;
 
-    return { blob, filename };
+    return { blob, filename, contentType };
   };
 
-  // ── View: Cloudinary → open delivery URL; else proxy stream ───────────────────
+  // ── View: authenticated proxy first (reliable PDF in new tab); fallback Cloudinary URL ──
   const handleViewFile = async (context) => {
     const directUrl = getContextFileUrl(context);
-    if (directUrl && isCloudinaryDeliveryUrl(directUrl)) {
-      window.open(directUrl, '_blank', 'noopener,noreferrer');
-      return;
-    }
     if (hasFile(context)) {
       try {
-        const { blob, filename } = await fetchFileBlob(context._id, false);
-        const blobUrl = URL.createObjectURL(blob);
-        window.open(blobUrl, '_blank', 'noopener,noreferrer');
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+        const { blob, contentType } = await fetchFileBlob(context._id, false);
+        const viewBlob = await coerceBlobForPdfViewer(blob, contentType, directUrl || '');
+        const blobUrl = URL.createObjectURL(viewBlob);
+        const win = window.open(blobUrl, '_blank', 'noopener,noreferrer');
+        if (!win) {
+          toast.error('Pop-up blocked — allow pop-ups for this site to view the PDF.');
+          URL.revokeObjectURL(blobUrl);
+          return;
+        }
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 300000);
+        return;
       } catch (err) {
         console.error('View error:', err);
+        if (directUrl && isCloudinaryDeliveryUrl(directUrl)) {
+          const viewUrl = isCloudinaryRawUploadUrl(directUrl)
+            ? cloudinaryInlineViewUrl(directUrl)
+            : directUrl;
+          window.open(viewUrl, '_blank', 'noopener,noreferrer');
+          toast.info('Opened from cloud link (fallback).');
+          return;
+        }
         if (directUrl && directUrl.startsWith('http')) {
           window.open(directUrl, '_blank', 'noopener,noreferrer');
           toast.info('Opened the file URL in a new tab.');
-        } else {
-          toast.error('Could not load file. Please try again.');
+          return;
         }
+        toast.error('Could not load file. Please try again.');
+        return;
       }
-    } else {
-      setViewContent({ title: context.title, text: context.content });
     }
+    setViewContent({ title: context.title, text: context.content });
   };
 
-  // ── Download: Cloudinary → new tab (attachment hint); else proxy blob ─────────
+  // ── Download: proxy first (real filename + attachment); fallback Cloudinary tab ──
   const handleDownloadFile = async (context) => {
     const directUrl = getContextFileUrl(context);
-    if (directUrl && isCloudinaryDeliveryUrl(directUrl)) {
-      const dlUrl = cloudinaryForceDownloadUrl(directUrl);
-      window.open(dlUrl, '_blank', 'noopener,noreferrer');
-      toast.success('Opened the Cloudinary file in a new tab — use Save As if your browser shows a preview.');
-      return;
-    }
     if (hasFile(context)) {
       try {
         const { blob, filename } = await fetchFileBlob(context._id, true);
-        const safeFilename = filename || `${context.title}.bin`;
+        let safeFilename =
+          filename ||
+          String(context.title || 'download').replace(/[^\w.\-() ]+/g, '_').slice(0, 120);
+        if (blob.type === 'application/pdf' && !/\.pdf$/i.test(safeFilename)) {
+          safeFilename = `${safeFilename.replace(/\.[^.]+$/, '')}.pdf`;
+        }
         const blobUrl = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = blobUrl;
@@ -190,18 +220,24 @@ const ContextManager = ({ subjectId }) => {
         a.click();
         a.remove();
         setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+        return;
       } catch (err) {
         console.error('Download error:', err);
-        if (directUrl && directUrl.startsWith('http')) {
+        if (directUrl && isCloudinaryDeliveryUrl(directUrl)) {
           window.open(cloudinaryForceDownloadUrl(directUrl), '_blank', 'noopener,noreferrer');
-          toast.info('Opened the file in a new tab — try saving from there.');
-        } else {
-          toast.error('Could not download file. Please try again.');
+          toast.info('Opened download in a new tab — use Save As if needed.');
+          return;
         }
+        if (directUrl && directUrl.startsWith('http')) {
+          window.open(directUrl, '_blank', 'noopener,noreferrer');
+          toast.info('Opened the file in a new tab — try saving from there.');
+          return;
+        }
+        toast.error('Could not download file. Please try again.');
+        return;
       }
-    } else {
-      downloadAsMarkdown(context.content, `context_${context.title}`);
     }
+    downloadAsMarkdown(context.content, `context_${context.title}`);
   };
 
   // ── Share to Community ────────────────────────────────────────────────────────
@@ -405,6 +441,9 @@ const ContextManager = ({ subjectId }) => {
                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
                   Upload File <span className="text-slate-400 font-normal ml-1">(PDF/Images/Videos)</span>
                 </label>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-2 ml-1">
+                  PDFs for cloud upload: max {maxPdfSizeLabelMb} MB (images use separate limits).
+                </p>
                 <div className="space-y-3">
                   <div className="flex flex-col sm:flex-row gap-3">
                     <input

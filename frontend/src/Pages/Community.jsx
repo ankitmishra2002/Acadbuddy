@@ -5,6 +5,8 @@ import api from '../services/api';
 import { Link } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import { useToast } from '../context/ToastContext';
+import { cloudinaryInlineViewUrl, isCloudinaryRawUploadUrl } from '../utils/cloudinaryUrls';
+import { MAX_CLOUDINARY_PDF_BYTES, maxPdfSizeLabelMb } from '../constants/uploadLimits';
 
 const Community = () => {
   const toast = useToast();
@@ -36,6 +38,19 @@ const Community = () => {
     cloudinaryPublicId: null
   });
   const [uploadingToCloudinary, setUploadingToCloudinary] = useState(false);
+  /** Local blob URL for PDF preview — never iframe Cloudinary (blocked by X-Frame-Options). */
+  const [localPdfPreviewUrl, setLocalPdfPreviewUrl] = useState(null);
+
+  useEffect(() => {
+    const f = formData.file;
+    if (!f || f.type !== 'application/pdf') {
+      setLocalPdfPreviewUrl(null);
+      return undefined;
+    }
+    const u = URL.createObjectURL(f);
+    setLocalPdfPreviewUrl(u);
+    return () => URL.revokeObjectURL(u);
+  }, [formData.file]);
 
   useEffect(() => {
     fetchPosts();
@@ -80,7 +95,16 @@ const Community = () => {
 
   const handleCloudinaryUpload = async (fileToUpload) => {
     if (!fileToUpload) return;
-    
+    if (
+      fileToUpload.type === 'application/pdf' &&
+      fileToUpload.size > MAX_CLOUDINARY_PDF_BYTES
+    ) {
+      toast.error(
+        `PDF must be ${maxPdfSizeLabelMb} MB or smaller (yours is ${(fileToUpload.size / (1024 * 1024)).toFixed(2)} MB).`
+      );
+      return;
+    }
+
     setUploadingToCloudinary(true);
     try {
       const formDataToSend = new FormData();
@@ -96,7 +120,14 @@ const Community = () => {
       toast.success('File uploaded to Cloudinary successfully.');
     } catch (error) {
       console.error('Cloudinary upload error:', error);
-      toast.error('Could not upload to Cloudinary. You can still upload directly.');
+      const msg =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        (error.response?.status === 413
+          ? `File too large. PDFs must be ${maxPdfSizeLabelMb} MB or under.`
+          : null) ||
+        'Could not upload to Cloudinary. You can still upload directly.';
+      toast.error(msg);
     } finally {
       setUploadingToCloudinary(false);
     }
@@ -506,24 +537,25 @@ const Community = () => {
                             <button
                               type="button"
                               onClick={() => {
-                                const isPDF = formData.cloudinaryUrl.toLowerCase().includes('.pdf') || formData.cloudinaryUrl.includes('format=pdf');
-                                if (isPDF) {
-                                  window.open(formData.cloudinaryUrl, '_blank');
-                                } else {
-                                  window.open(formData.cloudinaryUrl, '_blank');
-                                }
+                                const url = formData.cloudinaryUrl;
+                                if (!url) return;
+                                const openUrl =
+                                  url.includes('res.cloudinary.com') && isCloudinaryRawUploadUrl(url)
+                                    ? cloudinaryInlineViewUrl(url)
+                                    : url;
+                                window.open(openUrl, '_blank', 'noopener,noreferrer');
                               }}
                               className="px-4 py-1.5 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-800/80 text-emerald-700 dark:text-emerald-400 text-sm font-bold rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/30 flex items-center justify-center gap-2 transition-colors shadow-sm w-full sm:w-auto"
                             >
-                              <Eye size={16} /> View Preview
+                              <Eye size={16} /> Open in new tab
                             </button>
                           </div>
-                          {formData.file && formData.file.type === 'application/pdf' && (
+                          {localPdfPreviewUrl && (
                             <div className="mt-3 rounded-xl overflow-hidden border border-emerald-200 dark:border-emerald-800 shadow-inner">
                               <iframe
-                                src={formData.cloudinaryUrl}
+                                src={localPdfPreviewUrl}
                                 className="w-full h-48 bg-white"
-                                title="PDF Preview"
+                                title="PDF preview (local)"
                               />
                             </div>
                           )}

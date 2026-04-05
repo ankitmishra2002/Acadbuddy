@@ -1,5 +1,6 @@
+import crypto from 'crypto';
 import sharp from 'sharp';
-import { cloudinary, upload, getFileSizeLimit } from '../config/cloudinaryConfig.js';
+import { cloudinary, upload, getFileSizeLimit, FILE_SIZE_LIMITS } from '../config/cloudinaryConfig.js';
 
 // ─── Image compression helper ─────────────────────────────────────────────────
 /**
@@ -9,6 +10,8 @@ import { cloudinary, upload, getFileSizeLimit } from '../config/cloudinaryConfig
  */
 async function compressImage(buffer, mimeType) {
   try {
+    // Never process PDFs or non-images (defense in depth — only images call this path)
+    if (mimeType === 'application/pdf' || !mimeType?.startsWith('image/')) return buffer;
     // SVGs are vector — no compression needed
     if (mimeType === 'image/svg+xml') return buffer;
 
@@ -56,6 +59,20 @@ function getResourceType(mimeType) {
   if (mimeType.startsWith('video/'))      return 'video';
   if (mimeType.startsWith('audio/'))      return 'video'; // Cloudinary uses 'video' for audio
   return 'raw'; // documents
+}
+
+/**
+ * Cloudinary raw PDFs must keep a `.pdf` suffix on public_id so delivery uses
+ * Content-Type: application/pdf and browsers can view/download reliably.
+ */
+function buildPdfPublicId(originalname) {
+  const name = String(originalname || 'document.pdf').trim();
+  let stem = name.replace(/\.pdf$/i, '');
+  stem = stem.replace(/[^\w.-]+/g, '_').replace(/^\.+|\.+$/g, '');
+  if (!stem) stem = 'document';
+  stem = stem.slice(0, 72);
+  const suffix = crypto.randomBytes(4).toString('hex');
+  return `${stem}_${suffix}.pdf`;
 }
 
 // ─── Per-type size validation ──────────────────────────────────────────────────
@@ -109,22 +126,30 @@ export const uploadFromBrowser = async (req, res) => {
     }
 
     // ── Build Cloudinary upload options ──────────────────────────────────────
+    // quality / fetch_format are for images only — applying them to raw PDFs
+    // breaks delivery (wrong type / failed transforms) so view & download fail.
     const uploadOptions = {
       resource_type: resourceType,
       folder: 'academic-help-buddy',
       tags,
       use_filename: true,
       unique_filename: true,
-      // ── Delivery optimizations ────────────────────────────────────────────
-      // Cloudinary auto-picks the best quality and format per client/device
-      quality: 'auto',
-      fetch_format: 'auto',
     };
 
+    if (resourceType === 'image') {
+      uploadOptions.quality = 'auto';
+      uploadOptions.fetch_format = 'auto';
+    }
+
     if (resourceType === 'raw') {
-      // PDFs / documents — ensure public access
       uploadOptions.access_mode = 'public';
-      if (file.mimetype === 'application/pdf') uploadOptions.format = 'pdf';
+      if (file.mimetype === 'application/pdf') {
+        const pdfPublicId = buildPdfPublicId(file.originalname);
+        uploadOptions.use_filename = false;
+        uploadOptions.unique_filename = false;
+        uploadOptions.public_id = pdfPublicId;
+        uploadOptions.filename_override = (file.originalname || pdfPublicId).slice(0, 200);
+      }
     }
 
     if (resourceType === 'video') {
@@ -183,17 +208,30 @@ export const uploadMultiple = async (req, res) => {
         buffer = await compressImage(file.buffer, file.mimetype);
       }
 
-      const result = await streamUpload(buffer, {
+      const baseOpts = {
         resource_type: resourceType,
         folder: 'academic-help-buddy',
         tags,
         use_filename: true,
         unique_filename: true,
-        quality: 'auto',
-        fetch_format: 'auto',
-        ...(resourceType === 'raw' && { access_mode: 'public' }),
-        ...(resourceType === 'video' && { access_mode: 'public' }),
-      });
+      };
+      if (resourceType === 'image') {
+        baseOpts.quality = 'auto';
+        baseOpts.fetch_format = 'auto';
+      }
+      if (resourceType === 'raw') {
+        baseOpts.access_mode = 'public';
+        if (file.mimetype === 'application/pdf') {
+          const pdfPublicId = buildPdfPublicId(file.originalname);
+          baseOpts.use_filename = false;
+          baseOpts.unique_filename = false;
+          baseOpts.public_id = pdfPublicId;
+          baseOpts.filename_override = (file.originalname || pdfPublicId).slice(0, 200);
+        }
+      }
+      if (resourceType === 'video') baseOpts.access_mode = 'public';
+
+      const result = await streamUpload(buffer, baseOpts);
 
       return {
         url:               result.secure_url,
@@ -260,6 +298,10 @@ export const getConfig = async (req, res) => {
       cloud_name:     isConfigured ? process.env.CLOUDINARY_CLOUD_NAME : null,
       has_api_key:    !!process.env.CLOUDINARY_API_KEY,
       has_api_secret: !!process.env.CLOUDINARY_API_SECRET,
+      maxFileBytes:   {
+        pdf: FILE_SIZE_LIMITS.pdf,
+        image: FILE_SIZE_LIMITS.image,
+      },
     });
   } catch (error) {
     console.error('Error in getConfig:', error);
