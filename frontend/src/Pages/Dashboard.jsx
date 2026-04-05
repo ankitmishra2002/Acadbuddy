@@ -106,7 +106,7 @@ const quickLinks = [
   },
   {
     to: '/quick-rvsn',
-    title: 'Quick Rvsn',
+    title: 'Quick Revision',
     desc: 'Prompt-only revision packs',
     gradient: 'from-amber-500 via-orange-600 to-rose-700',
     shadow: 'shadow-amber-500/25',

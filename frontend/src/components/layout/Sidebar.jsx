@@ -15,7 +15,7 @@ const Sidebar = ({ onClose, isCollapsed, onToggleCollapse }) => {
     { path: '/subjects', icon: BookOpen, label: 'Subjects' },
     { path: '/styles', icon: Palette, label: 'Answer Styles' },
     { path: '/smart-studies', icon: Sparkles, label: 'Smart Studies' },
-    { path: '/quick-rvsn', icon: Zap, label: 'Quick Rvsn' },
+    { path: '/quick-rvsn', icon: Zap, label: 'Quick Revision' },
     { path: '/community', icon: Users, label: 'Community' }
   ];
 

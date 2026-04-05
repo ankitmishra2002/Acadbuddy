@@ -86,7 +86,7 @@ const Layout = ({ children }) => {
       [/^\/dashboard$/, 'dashboard', 'Dashboard'],
       [/^\/subjects$/, 'subjects', 'Subjects'],
       [/^\/smart-studies$/, 'smart-studies', 'Smart Studies'],
-      [/^\/quick-rvsn$/, 'quick-rvsn', 'Quick Rvsn'],
+      [/^\/quick-rvsn$/, 'quick-rvsn', 'Quick Revision'],
       [/^\/styles$/, 'styles', 'Answer styles'],
       [/^\/profile$/, 'profile', 'Profile'],
       [/^\/community$/, 'community', 'Community'],

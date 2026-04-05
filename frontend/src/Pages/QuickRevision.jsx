@@ -108,7 +108,7 @@ const QuickRevision = () => {
                 Text-only · fast turnaround
               </div>
               <h1 className="text-3xl sm:text-4xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-amber-700 via-orange-600 to-rose-700 dark:from-amber-400 dark:via-orange-400 dark:to-rose-300">
-                Quick Rvsn
+                Quick Revision
               </h1>
               <p className="mt-2 text-slate-600 dark:text-slate-400 text-sm sm:text-base max-w-2xl">
                 Paste what you need to revise — topic, unit, or past-paper focus. We generate key points, definitions,
@@ -281,7 +281,7 @@ const QuickRevision = () => {
             History
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-            Recent Quick Rvsn runs on this device
+            Recent Quick Revision runs on this device
           </p>
           {sessions.length === 0 ? (
             <p className="text-sm text-slate-500 dark:text-slate-400 flex-1">
