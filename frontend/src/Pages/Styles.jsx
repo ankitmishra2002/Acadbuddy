@@ -30,8 +30,7 @@ const Styles = () => {
       const response = await api.get('/styles');
       setStyles(response.data);
     } catch (error) {
-      if (import.meta.env.DEV) console.error('Failed to fetch styles:', error);
-      toast.error(error.response?.data?.message || 'Could not load your styles.');
+      console.error('Failed to fetch styles:', error);
     }
   };
 
@@ -40,49 +39,29 @@ const Styles = () => {
       const response = await api.get('/styles/defaults');
       setDefaults(response.data);
     } catch (error) {
-      if (import.meta.env.DEV) console.error('Failed to fetch defaults:', error);
-      toast.error('Could not load default presets.');
+      console.error('Failed to fetch defaults:', error);
     }
   };
 
   const handleUseDefault = async (defaultStyle) => {
     try {
-      const { data: created } = await api.post('/styles', {
+      await api.post('/styles', {
         ...defaultStyle,
         isDefault: false
       });
-      await api.put(`/styles/${created._id}/activate`);
-      await fetchStyles();
-      toast.success('Preset added and set as your active style.');
+      fetchStyles();
     } catch (error) {
-      const msg = error.response?.data?.message || error.message || 'Failed to create style';
-      toast.error(msg);
+      toast.error('Failed to create style');
     }
-  };
-
-  const buildStylePayload = () => {
-    const maxWordCount =
-      formData.maxWordCount === '' || formData.maxWordCount == null
-        ? undefined
-        : Number(formData.maxWordCount);
-    return {
-      name: formData.name.trim(),
-      sections: formData.sections,
-      tone: formData.tone,
-      approximateLength: formData.approximateLength,
-      instructions: formData.instructions?.trim() || undefined,
-      ...(Number.isFinite(maxWordCount) ? { maxWordCount } : {})
-    };
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const payload = buildStylePayload();
       if (editingStyle) {
-        await api.put(`/styles/${editingStyle._id}`, payload);
+        await api.put(`/styles/${editingStyle._id}`, formData);
       } else {
-        await api.post('/styles', payload);
+        await api.post('/styles', formData);
       }
       setShowModal(false);
       setEditingStyle(null);
@@ -94,11 +73,10 @@ const Styles = () => {
         approximateLength: 'medium',
         instructions: ''
       });
-      await fetchStyles();
+      fetchStyles();
       toast.success(editingStyle ? 'Style updated.' : 'Style saved.');
     } catch (error) {
-      const msg = error.response?.data?.message || error.message || 'Failed to save style';
-      toast.error(msg);
+      toast.error('Failed to save style');
     }
   };
 
@@ -119,22 +97,18 @@ const Styles = () => {
     if (!confirm('Are you sure you want to delete this style?')) return;
     try {
       await api.delete(`/styles/${id}`);
-      await fetchStyles();
-      toast.success('Style deleted.');
+      fetchStyles();
     } catch (error) {
-      const msg = error.response?.data?.message || error.message || 'Failed to delete style';
-      toast.error(msg);
+      toast.error('Failed to delete style');
     }
   };
 
   const handleActivate = async (id) => {
     try {
       await api.put(`/styles/${id}/activate`);
-      await fetchStyles();
-      toast.success('Active answer style updated.');
+      fetchStyles();
     } catch (error) {
-      const msg = error.response?.data?.message || error.message || 'Failed to activate style';
-      toast.error(msg);
+      toast.error('Failed to activate style');
     }
   };
 
@@ -263,17 +237,13 @@ const Styles = () => {
               <motion.div 
                 variants={itemVariants}
                 key={style._id} 
-                className={`bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border p-6 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1 transition-all flex flex-col h-full ${
-                  style.isActive
-                    ? 'border-emerald-300 dark:border-emerald-700 ring-1 ring-emerald-500/20 shadow-emerald-500/10'
-                    : 'border-white dark:border-slate-800'
-                }`}
+                className={`bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border ${style.isDefault ? 'border-emerald-200 dark:border-emerald-800 shadow-emerald-500/5' : 'border-white dark:border-slate-800'} p-6 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1 transition-all flex flex-col h-full`}
               >
                 <div className="flex-grow">
                   <div className="flex justify-between items-start mb-4 gap-2">
                     <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">{style.name}</h3>
-                    {style.isActive && (
-                      <span className="flex-shrink-0 text-[10px] font-extrabold uppercase tracking-widest bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
+                    {style.isDefault && (
+                      <span className="flex-shrink-0 text-[10px] font-extrabold uppercase tracking-widest bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full border border-emerald-200 flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                         Active
                       </span>
@@ -309,34 +279,34 @@ const Styles = () => {
                 </div>
 
                 <div className="flex gap-2 mt-auto pt-4 border-t border-slate-100 dark:border-slate-700">
-                  {style.isActive ? (
-                    <div className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-emerald-200/80 bg-emerald-50/90 py-2.5 px-3 text-sm font-semibold text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
-                      <Check size={16} strokeWidth={3} className="shrink-0" aria-hidden />
-                      Current style
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => handleActivate(style._id)}
-                      className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-emerald-200/50 bg-emerald-50 py-2.5 px-3 text-sm font-semibold text-emerald-700 transition-all hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 dark:hover:bg-emerald-900/40"
-                    >
-                      <Check size={16} strokeWidth={3} />
-                      Set Active
-                    </button>
-                  )}
                   <button
-                    type="button"
+                    onClick={() => handleActivate(style._id)}
+                    disabled={style.isDefault}
+                    className={`flex-1 py-2.5 px-3 rounded-xl text-sm flex items-center justify-center gap-1.5 font-semibold transition-all ${
+                      style.isDefault 
+                      ? 'bg-slate-100 text-slate-400 cursor-not-allowed hidden' 
+                      : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200/50'
+                    }`}
+                  >
+                    <Check size={16} strokeWidth={3} />
+                    Set Active
+                  </button>
+                  <button
                     onClick={() => handleEdit(style)}
-                    className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-slate-600 transition-all hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:border-blue-800 dark:hover:bg-blue-950/40"
+                    className="p-2.5 bg-slate-50 dark:bg-slate-800/50 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-200 transition-all"
                     title="Edit Style"
                   >
                     <Edit size={18} />
                   </button>
                   <button
-                    type="button"
                     onClick={() => handleDelete(style._id)}
-                    className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-slate-400 transition-all hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:bg-rose-950/30"
-                    title="Delete Style"
+                    disabled={style.isDefault}
+                    className={`p-2.5 rounded-xl border transition-all ${
+                      style.isDefault
+                      ? 'bg-slate-50 dark:bg-slate-800/50 text-slate-300 border-slate-100 dark:border-slate-700 cursor-not-allowed hidden'
+                      : 'bg-slate-50 dark:bg-slate-800/50 text-slate-400 hover:text-rose-600 hover:bg-rose-50 border-slate-200 dark:border-slate-700 hover:border-rose-200'
+                    }`}
+                    title={style.isDefault ? "Cannot delete active style" : "Delete Style"}
                   >
                     <Trash2 size={18} />
                   </button>
@@ -459,11 +429,10 @@ const Styles = () => {
                     </label>
                     <input
                       type="number"
-                      min={0}
                       placeholder="e.g. 500"
                       value={formData.maxWordCount}
                       onChange={(e) => setFormData({ ...formData, maxWordCount: e.target.value })}
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-medium text-slate-800 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-100"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all font-medium text-slate-800"
                     />
                   </div>
                   <div>
@@ -473,7 +442,7 @@ const Styles = () => {
                     <select
                       value={formData.approximateLength}
                       onChange={(e) => setFormData({ ...formData, approximateLength: e.target.value })}
-                      className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-medium text-slate-800 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-100"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all font-medium text-slate-800 appearance-none"
                     >
                       <option value="short">Short & Concise</option>
                       <option value="medium">Medium</option>
@@ -491,7 +460,7 @@ const Styles = () => {
                     value={formData.instructions}
                     onChange={(e) => setFormData({ ...formData, instructions: e.target.value })}
                     rows="3"
-                    className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-medium text-slate-800 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-100"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all font-medium text-slate-800 resize-none"
                   />
                 </div>
 

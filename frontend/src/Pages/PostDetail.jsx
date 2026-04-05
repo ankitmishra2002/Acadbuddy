@@ -9,6 +9,7 @@ import {
   cloudinaryInlineViewUrl,
   isCloudinaryRawUploadUrl,
 } from '../utils/cloudinaryUrls';
+import { coerceBlobForPdfViewer } from '../utils/pdfViewerBlob';
 import { resolveSlideBullets, resolveSpeakerNotes } from '../utils/pptSlideUtils';
 import { useToast } from '../context/ToastContext';
 
@@ -127,6 +128,70 @@ const PostDetail = () => {
     }
   };
 
+  /** Same-origin proxy as workspace — avoids broken window.open() to Cloudinary for PDFs. */
+  const openPostAttachmentInNewTab = async (fallbackUrl) => {
+    if (!id) return;
+    const baseUrl = import.meta.env.VITE_API_URL || '/api';
+    try {
+      const resp = await fetch(`${baseUrl}/community/posts/${id}/file`);
+      if (!resp.ok) throw new Error(String(resp.status));
+      const contentType = resp.headers.get('content-type') || '';
+      const blob = await resp.blob();
+      const viewBlob = await coerceBlobForPdfViewer(blob, contentType, fallbackUrl || '');
+      const blobUrl = URL.createObjectURL(viewBlob);
+      const win = window.open(blobUrl, '_blank', 'noopener,noreferrer');
+      if (!win) {
+        toast.error('Pop-up blocked — allow pop-ups for this site to view the PDF.');
+        URL.revokeObjectURL(blobUrl);
+        return;
+      }
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 300000);
+    } catch (e) {
+      console.error(e);
+      if (fallbackUrl) {
+        const openUrl =
+          fallbackUrl.includes('res.cloudinary.com') && isCloudinaryRawUploadUrl(fallbackUrl)
+            ? cloudinaryInlineViewUrl(fallbackUrl)
+            : fallbackUrl;
+        window.open(openUrl, '_blank', 'noopener,noreferrer');
+        toast.info('Opened file link directly (fallback).');
+      } else {
+        toast.error('Could not open the file.');
+      }
+    }
+  };
+
+  const downloadPostAttachment = async (fallbackUrl, titleHint) => {
+    if (!id) return;
+    const baseUrl = import.meta.env.VITE_API_URL || '/api';
+    try {
+      const resp = await fetch(`${baseUrl}/community/posts/${id}/file?download=1`);
+      if (!resp.ok) throw new Error(String(resp.status));
+      const blob = await resp.blob();
+      const disposition = resp.headers.get('content-disposition') || '';
+      const nameMatch = disposition.match(/filename[^;=\n]*=(['"]?)([^'"\n;]+)\1/);
+      let name = nameMatch ? nameMatch[2].trim().replace(/"/g, '') : `${String(titleHint || 'download').replace(/[^\w.-]+/g, '_')}.pdf`;
+      if (blob.type === 'application/pdf' && !/\.pdf$/i.test(name)) {
+        name = `${name.replace(/\.[^.]+$/, '')}.pdf`;
+      }
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+    } catch (e) {
+      if (fallbackUrl) {
+        window.open(cloudinaryForceDownloadUrl(fallbackUrl), '_blank', 'noopener,noreferrer');
+        toast.info('Opened download in a new tab (fallback).');
+      } else {
+        toast.error('Could not download the file.');
+      }
+    }
+  };
+
   if (loading) {
     return <div className="text-center py-12">Loading...</div>;
   }
@@ -212,11 +277,6 @@ const PostDetail = () => {
                       fileUrl.includes('/raw/upload/') ||
                       (publicIdMatch && publicIdMatch[1].toLowerCase().endsWith('.pdf'));
 
-                    const pdfViewUrl =
-                      fileUrl.includes('res.cloudinary.com') && isCloudinaryRawUploadUrl(fileUrl)
-                        ? cloudinaryInlineViewUrl(fileUrl)
-                        : fileUrl;
-                    
                     return (
                       <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
                         <div className="flex items-center gap-3 mb-4">
@@ -229,15 +289,12 @@ const PostDetail = () => {
                         {isPDF ? (
                           <div className="space-y-4">
                             <p className="text-sm text-gray-600 bg-white border border-gray-200 rounded-lg px-4 py-3">
-                              Hosted PDFs cannot be embedded here (Cloudinary blocks iframes for security).
-                              Open in a new tab to view, or use download.
+                              View opens through our server (same as workspace) so your browser can show the PDF reliably.
                             </p>
                             <div className="flex flex-wrap gap-2">
                               <button
                                 type="button"
-                                onClick={() =>
-                                  window.open(pdfViewUrl, '_blank', 'noopener,noreferrer')
-                                }
+                                onClick={() => openPostAttachmentInNewTab(fileUrl)}
                                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                               >
                                 <Eye size={18} />
@@ -245,9 +302,7 @@ const PostDetail = () => {
                               </button>
                               <button
                                 type="button"
-                                onClick={() =>
-                                  window.open(cloudinaryForceDownloadUrl(fileUrl), '_blank', 'noopener,noreferrer')
-                                }
+                                onClick={() => downloadPostAttachment(fileUrl, post.title)}
                                 className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
                               >
                                 <Download size={18} />
@@ -257,7 +312,8 @@ const PostDetail = () => {
                           </div>
                         ) : (
                           <button
-                            onClick={() => window.open(fileUrl, '_blank')}
+                            type="button"
+                            onClick={() => openPostAttachmentInNewTab(fileUrl)}
                             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                           >
                             <Eye size={18} />
@@ -274,10 +330,7 @@ const PostDetail = () => {
                     content.toLowerCase().includes('.pdf') ||
                     content.includes('format=pdf') ||
                     content.includes('/raw/upload/');
-                  const externalPdfViewUrl =
-                    content.includes('res.cloudinary.com') && isCloudinaryRawUploadUrl(content)
-                      ? cloudinaryInlineViewUrl(content)
-                      : content;
+                  const isCloudinary = content.includes('res.cloudinary.com');
 
                   return (
                     <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
@@ -291,25 +344,27 @@ const PostDetail = () => {
                       {isPDF ? (
                         <div className="space-y-4">
                           <p className="text-sm text-gray-600 bg-white border border-gray-200 rounded-lg px-4 py-3">
-                            This PDF cannot be embedded on this page. Open it in a new tab instead.
+                            {isCloudinary
+                              ? 'View uses our server proxy for reliable PDF display (same as workspace).'
+                              : 'This PDF cannot be embedded on this page. Open it in a new tab instead.'}
                           </p>
                           <div className="flex flex-wrap gap-2">
                             <button
                               type="button"
                               onClick={() =>
-                                window.open(externalPdfViewUrl, '_blank', 'noopener,noreferrer')
+                                isCloudinary
+                                  ? openPostAttachmentInNewTab(content)
+                                  : window.open(content, '_blank', 'noopener,noreferrer')
                               }
                               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                             >
                               <Eye size={18} />
                               Open PDF in new tab
                             </button>
-                            {content.includes('res.cloudinary.com') && (
+                            {isCloudinary && (
                               <button
                                 type="button"
-                                onClick={() =>
-                                  window.open(cloudinaryForceDownloadUrl(content), '_blank', 'noopener,noreferrer')
-                                }
+                                onClick={() => downloadPostAttachment(content, post.title)}
                                 className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
                               >
                                 <Download size={18} />
@@ -321,7 +376,11 @@ const PostDetail = () => {
                       ) : (
                         <button
                           type="button"
-                          onClick={() => window.open(content, '_blank', 'noopener,noreferrer')}
+                          onClick={() =>
+                            isCloudinary
+                              ? openPostAttachmentInNewTab(content)
+                              : window.open(content, '_blank', 'noopener,noreferrer')
+                          }
                           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                         >
                           <Eye size={18} />

@@ -20,7 +20,6 @@ User Context:
 Answer Style Profile:
 - Sections: ${styleProfile?.sections?.join(', ') || 'N/A'}
 - Tone: ${styleProfile?.tone || 'academic'}
-${styleProfile?.approximateLength ? `- Target length: ${styleProfile.approximateLength} (short = brief; medium = balanced; detailed = comprehensive)` : ''}
 ${styleProfile?.maxWordCount ? `- Max Word Count: ${styleProfile.maxWordCount}` : ''}
 ${styleProfile?.instructions ? `- Additional Instructions: ${styleProfile.instructions}` : ''}
 

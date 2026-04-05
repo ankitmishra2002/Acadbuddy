@@ -9,7 +9,8 @@ import {
   getPostComments,
   cloneCommunityPost,
   reportCommunityPost,
-  deleteCommunityPost
+  deleteCommunityPost,
+  proxyCommunityPostFile,
 } from '../controllers/community.controller.js';
 import { authenticateAccessToken } from '../middleware/auth.middleware.js';
 
@@ -17,6 +18,7 @@ const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
 router.get('/posts', listCommunityPosts);
+router.get('/posts/:id/file', proxyCommunityPostFile);
 router.get('/posts/:id', getCommunityPost);
 router.post('/posts', authenticateAccessToken, upload.single('file'), createCommunityPost);
 router.post('/posts/:id/vote', authenticateAccessToken, voteCommunityPost);

@@ -1,9 +1,121 @@
+import axios from 'axios';
 import CommunityPost from '../models/CommunityPost.model.js';
 import CommunityVote from '../models/CommunityVote.model.js';
 import CommunityComment from '../models/CommunityComment.model.js';
 import GeneratedContent from '../models/GeneratedContent.model.js';
 import User from '../models/User.model.js';
 import pdfParse from 'pdf-parse';
+
+const CLOUDINARY_HOST = 'res.cloudinary.com';
+
+function communityContentToString(content) {
+  if (content == null) return '';
+  if (typeof content === 'string') return content;
+  try {
+    return JSON.stringify(content);
+  } catch {
+    return String(content);
+  }
+}
+
+/** Only Cloudinary delivery URLs — avoids SSRF via arbitrary URLs in post content. */
+function extractCommunityPostCloudinaryUrl(content) {
+  const s = communityContentToString(content);
+  if (!s) return null;
+  if (s.includes('[Cloudinary File]')) {
+    const m = s.match(/URL:\s*(https:\/\/[^\s\n]+)/i);
+    if (m && m[1].includes(CLOUDINARY_HOST)) return m[1].trim();
+  }
+  const first = s.trim().split(/\s/)[0];
+  if (first.startsWith(`https://${CLOUDINARY_HOST}/`)) return first;
+  return null;
+}
+
+/**
+ * GET /api/community/posts/:id/file — stream the post's Cloudinary attachment (public, active posts only).
+ * Same pattern as context file proxy so browsers get correct Content-Type for PDF viewing.
+ */
+export const proxyCommunityPostFile = async (req, res) => {
+  try {
+    const post = await CommunityPost.findById(req.params.id);
+    if (!post || post.status !== 'active') {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    const fileUrl = extractCommunityPostCloudinaryUrl(post.content);
+    if (!fileUrl) {
+      return res.status(404).json({ message: 'No hosted file on this post' });
+    }
+
+    const download = req.query.download === '1';
+    const rawName = fileUrl.split('/').pop()?.split('?')[0] || '';
+    let safeFilename =
+      rawName && rawName.length < 200
+        ? rawName.replace(/[^\w.\-() ]+/g, '_')
+        : `${String(post.title || 'file').replace(/[^\w.\-() ]+/g, '_')}.bin`;
+
+    const upstream = await axios({
+      method: 'get',
+      url: fileUrl,
+      responseType: 'stream',
+      maxRedirects: 5,
+      timeout: 120000,
+      validateStatus: (status) => status >= 200 && status < 400,
+    });
+
+    let contentType = upstream.headers['content-type'] || 'application/octet-stream';
+    const pathBeforeQuery = fileUrl.split('?')[0];
+    const looksLikePdfPath = /\.pdf$/i.test(pathBeforeQuery) || /\.pdf\//i.test(pathBeforeQuery);
+    if (
+      looksLikePdfPath &&
+      !/^application\/pdf/i.test(String(contentType).split(';')[0].trim())
+    ) {
+      contentType = 'application/pdf';
+    }
+    if (looksLikePdfPath && !/\.pdf$/i.test(safeFilename)) {
+      const stem =
+        String(post.title || safeFilename || 'document')
+          .replace(/\.[^.]+$/, '')
+          .replace(/[^\w.\-() ]+/g, '_') || 'document';
+      safeFilename = `${stem}.pdf`;
+    }
+    if (
+      download &&
+      /application\/pdf|\/pdf/i.test(contentType) &&
+      !/\.pdf$/i.test(safeFilename)
+    ) {
+      const stem =
+        String(post.title || safeFilename || 'document')
+          .replace(/\.[^.]+$/, '')
+          .replace(/[^\w.\-() ]+/g, '_') || 'document';
+      safeFilename = `${stem}.pdf`;
+    }
+
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    const safeQuoted = safeFilename.replace(/"/g, "'");
+    if (download) {
+      res.setHeader('Content-Disposition', `attachment; filename="${safeQuoted}"`);
+    } else {
+      res.setHeader('Content-Disposition', `inline; filename="${safeQuoted}"`);
+    }
+    if (upstream.headers['content-length']) {
+      res.setHeader('Content-Length', upstream.headers['content-length']);
+    }
+
+    upstream.data.pipe(res);
+    upstream.data.on('error', (err) => {
+      console.error('Community file proxy stream error:', err);
+      if (!res.headersSent) res.status(500).end();
+      else res.destroy(err);
+    });
+  } catch (error) {
+    console.error('proxyCommunityPostFile:', error);
+    if (!res.headersSent) {
+      res.status(502).json({ message: error.message || 'Could not fetch file' });
+    }
+  }
+};
 
 export const listCommunityPosts = async (req, res) => {
   try {
