@@ -1,8 +1,7 @@
 import mongoose from 'mongoose';
 import pdfParse from 'pdf-parse';
+import axios from 'axios';
 import Context from '../models/Context.model.js';
-import https from 'https';
-import http from 'http';
 
 export const getContextsBySubject = async (req, res) => {
   try {
@@ -144,18 +143,22 @@ export const searchContext = async (req, res) => {
 
 // ── Helper: extract the best URL from context ─────────────────────────────────
 const extractContextFileUrl = (context) => {
-  if (context.fileUrl && context.fileUrl.startsWith('http')) return context.fileUrl;
-  if (context.content && context.content.startsWith('http')) return context.content;
+  if (context.fileUrl && String(context.fileUrl).trim().startsWith('http')) {
+    return String(context.fileUrl).trim();
+  }
+  if (context.content && String(context.content).trim().startsWith('http')) {
+    return String(context.content).trim().split(/\s/)[0];
+  }
   if (context.content && context.content.includes('[Cloudinary File]')) {
-    const m = context.content.match(/URL:\s*(https?:\/\/[^\s]+)/);
-    if (m) return m[1];
+    const m = context.content.match(/URL:\s*(https?:\/\/[^\s\n]+)/);
+    if (m) return m[1].trim();
   }
   return null;
 };
 
 // ── GET /api/context/:id/proxy ─────────────────────────────────────────────────
-// Server-side proxy: fetches file from Cloudinary and streams to browser.
-// Bypasses client-side DNS / firewall blocks on res.cloudinary.com.
+// Server-side proxy: fetches file from Cloudinary (or any URL) and streams to browser.
+// Uses axios with redirect following — raw http.get often fails on Cloudinary redirects.
 export const proxyContextFile = async (req, res) => {
   try {
     const context = await Context.findOne({ _id: req.params.id, userId: req.userId });
@@ -167,41 +170,55 @@ export const proxyContextFile = async (req, res) => {
     }
 
     const download = req.query.download === '1';
-    const filename = fileUrl.split('/').pop().split('?')[0] || context.title || 'file';
+    const rawName = fileUrl.split('/').pop()?.split('?')[0] || '';
+    const safeFilename =
+      rawName && rawName.length < 200
+        ? rawName.replace(/[^\w.\-() ]+/g, '_')
+        : `${String(context.title || 'file').replace(/[^\w.\-() ]+/g, '_')}.bin`;
 
-    const protocol = fileUrl.startsWith('https') ? https : http;
+    const upstream = await axios({
+      method: 'get',
+      url: fileUrl,
+      responseType: 'stream',
+      maxRedirects: 5,
+      timeout: 120000,
+      validateStatus: (status) => status >= 200 && status < 400
+    });
 
-    protocol.get(fileUrl, (upstream) => {
-      if (upstream.statusCode >= 400) {
-        return res.status(upstream.statusCode).json({ message: 'Failed to fetch file from cloud storage' });
-      }
+    const contentType = upstream.headers['content-type'] || 'application/octet-stream';
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=3600');
 
-      const contentType = upstream.headers['content-type'] || 'application/octet-stream';
-      res.setHeader('Content-Type', contentType);
-      res.setHeader('Cache-Control', 'public, max-age=3600');
+    const safeQuoted = safeFilename.replace(/"/g, "'");
+    if (download) {
+      res.setHeader('Content-Disposition', `attachment; filename="${safeQuoted}"`);
+    } else {
+      res.setHeader('Content-Disposition', `inline; filename="${safeQuoted}"`);
+    }
 
-      if (download) {
-        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    if (upstream.headers['content-length']) {
+      res.setHeader('Content-Length', upstream.headers['content-length']);
+    }
+
+    upstream.data.pipe(res);
+    upstream.data.on('error', (err) => {
+      console.error('Proxy stream error:', err);
+      if (!res.headersSent) {
+        res.status(500).end();
       } else {
-        res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+        res.destroy(err);
       }
-
-      if (upstream.headers['content-length']) {
-        res.setHeader('Content-Length', upstream.headers['content-length']);
-      }
-
-      upstream.pipe(res);
-      upstream.on('error', (err) => {
-        console.error('Upstream stream error:', err);
-        if (!res.headersSent) res.status(500).json({ message: 'File stream error' });
-      });
-    }).on('error', (err) => {
-      console.error('Proxy fetch error:', err);
-      res.status(502).json({ message: 'Could not reach cloud file storage: ' + err.message });
     });
   } catch (error) {
     console.error('proxyContextFile error:', error);
-    res.status(500).json({ message: error.message });
+    const status = error.response?.status;
+    const msg =
+      error.response?.data?.message ||
+      error.message ||
+      'Could not fetch file from storage';
+    if (!res.headersSent) {
+      res.status(status && status < 500 ? status : 502).json({ message: msg });
+    }
   }
 };
 

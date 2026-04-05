@@ -5,6 +5,11 @@ import api from '../../services/api';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../context/ToastContext';
 import { downloadAsMarkdown } from '../../utils/downloadUtils';
+import {
+  getContextFileUrl,
+  isCloudinaryDeliveryUrl,
+  cloudinaryForceDownloadUrl,
+} from '../../utils/cloudinaryUrls';
 
 const ContextManager = ({ subjectId }) => {
   const navigate = useNavigate();
@@ -137,27 +142,42 @@ const ContextManager = ({ subjectId }) => {
     return { blob, filename };
   };
 
-  // ── View: fetch via backend proxy, open as blob URL in new tab ────────────────
+  // ── View: Cloudinary → open delivery URL; else proxy stream ───────────────────
   const handleViewFile = async (context) => {
+    const directUrl = getContextFileUrl(context);
+    if (directUrl && isCloudinaryDeliveryUrl(directUrl)) {
+      window.open(directUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
     if (hasFile(context)) {
       try {
         const { blob, filename } = await fetchFileBlob(context._id, false);
         const blobUrl = URL.createObjectURL(blob);
         window.open(blobUrl, '_blank', 'noopener,noreferrer');
-        // Revoke after a delay so the new tab has time to load the document
         setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
       } catch (err) {
         console.error('View error:', err);
-        toast.error('Could not load file. Please try again.');
+        if (directUrl && directUrl.startsWith('http')) {
+          window.open(directUrl, '_blank', 'noopener,noreferrer');
+          toast.info('Opened the file URL in a new tab.');
+        } else {
+          toast.error('Could not load file. Please try again.');
+        }
       }
     } else {
-      // Plain extracted text — show in-app viewer
       setViewContent({ title: context.title, text: context.content });
     }
   };
 
-  // ── Download: fetch via backend proxy, save as file ───────────────────────────
+  // ── Download: Cloudinary → new tab (attachment hint); else proxy blob ─────────
   const handleDownloadFile = async (context) => {
+    const directUrl = getContextFileUrl(context);
+    if (directUrl && isCloudinaryDeliveryUrl(directUrl)) {
+      const dlUrl = cloudinaryForceDownloadUrl(directUrl);
+      window.open(dlUrl, '_blank', 'noopener,noreferrer');
+      toast.success('Opened the Cloudinary file in a new tab — use Save As if your browser shows a preview.');
+      return;
+    }
     if (hasFile(context)) {
       try {
         const { blob, filename } = await fetchFileBlob(context._id, true);
@@ -172,10 +192,14 @@ const ContextManager = ({ subjectId }) => {
         setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
       } catch (err) {
         console.error('Download error:', err);
-        toast.error('Could not download file. Please try again.');
+        if (directUrl && directUrl.startsWith('http')) {
+          window.open(cloudinaryForceDownloadUrl(directUrl), '_blank', 'noopener,noreferrer');
+          toast.info('Opened the file in a new tab — try saving from there.');
+        } else {
+          toast.error('Could not download file. Please try again.');
+        }
       }
     } else {
-      // Text content — download as a markdown file
       downloadAsMarkdown(context.content, `context_${context.title}`);
     }
   };

@@ -4,6 +4,7 @@ import { ArrowLeft, ThumbsUp, ThumbsDown, Copy, Eye, FileText, Download } from '
 import api from '../services/api';
 import useAuthStore from '../store/authStore';
 import { downloadAsMarkdown } from '../utils/downloadUtils';
+import { cloudinaryForceDownloadUrl } from '../utils/cloudinaryUrls';
 import { resolveSlideBullets, resolveSpeakerNotes } from '../utils/pptSlideUtils';
 import { useToast } from '../context/ToastContext';
 
@@ -254,14 +255,16 @@ const PostDetail = () => {
                                 <Eye size={18} />
                                 Open in New Tab
                               </button>
-                              <a
-                                href={fileUrl}
-                                download
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  window.open(cloudinaryForceDownloadUrl(fileUrl), '_blank', 'noopener,noreferrer')
+                                }
                                 className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
                               >
                                 <Download size={18} />
                                 Download PDF
-                              </a>
+                              </button>
                             </div>
                           </div>
                         ) : (
