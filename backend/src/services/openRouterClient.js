@@ -47,13 +47,14 @@ export function normalizeAssistantContent(content) {
  * @param {Array<{ role: string, content: unknown }>} opts.messages
  * @param {number} [opts.temperature]
  */
-export async function openRouterChat({ messages, temperature }) {
+export async function openRouterChat({ messages, temperature, maxTokens }) {
   const openRouter = getClient();
   const completion = await openRouter.chat.send({
     model: MODEL,
     messages,
     temperature: temperature ?? 0.7,
     stream: false,
+    ...(maxTokens != null && maxTokens > 0 ? { maxTokens } : {}),
   });
   const text = normalizeAssistantContent(completion?.choices?.[0]?.message?.content);
   if (!text?.trim()) {

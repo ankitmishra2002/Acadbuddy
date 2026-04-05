@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
 import pdfParse from 'pdf-parse';
 import Context from '../models/Context.model.js';
+import https from 'https';
+import http from 'http';
 
 export const getContextsBySubject = async (req, res) => {
   try {
@@ -140,3 +142,89 @@ export const searchContext = async (req, res) => {
   }
 };
 
+// ── Helper: extract the best URL from context ─────────────────────────────────
+const extractContextFileUrl = (context) => {
+  if (context.fileUrl && context.fileUrl.startsWith('http')) return context.fileUrl;
+  if (context.content && context.content.startsWith('http')) return context.content;
+  if (context.content && context.content.includes('[Cloudinary File]')) {
+    const m = context.content.match(/URL:\s*(https?:\/\/[^\s]+)/);
+    if (m) return m[1];
+  }
+  return null;
+};
+
+// ── GET /api/context/:id/proxy ─────────────────────────────────────────────────
+// Server-side proxy: fetches file from Cloudinary and streams to browser.
+// Bypasses client-side DNS / firewall blocks on res.cloudinary.com.
+export const proxyContextFile = async (req, res) => {
+  try {
+    const context = await Context.findOne({ _id: req.params.id, userId: req.userId });
+    if (!context) return res.status(404).json({ message: 'Context not found' });
+
+    const fileUrl = extractContextFileUrl(context);
+    if (!fileUrl) {
+      return res.status(404).json({ message: 'No file attached to this context' });
+    }
+
+    const download = req.query.download === '1';
+    const filename = fileUrl.split('/').pop().split('?')[0] || context.title || 'file';
+
+    const protocol = fileUrl.startsWith('https') ? https : http;
+
+    protocol.get(fileUrl, (upstream) => {
+      if (upstream.statusCode >= 400) {
+        return res.status(upstream.statusCode).json({ message: 'Failed to fetch file from cloud storage' });
+      }
+
+      const contentType = upstream.headers['content-type'] || 'application/octet-stream';
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+
+      if (download) {
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      } else {
+        res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+      }
+
+      if (upstream.headers['content-length']) {
+        res.setHeader('Content-Length', upstream.headers['content-length']);
+      }
+
+      upstream.pipe(res);
+      upstream.on('error', (err) => {
+        console.error('Upstream stream error:', err);
+        if (!res.headersSent) res.status(500).json({ message: 'File stream error' });
+      });
+    }).on('error', (err) => {
+      console.error('Proxy fetch error:', err);
+      res.status(502).json({ message: 'Could not reach cloud file storage: ' + err.message });
+    });
+  } catch (error) {
+    console.error('proxyContextFile error:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ── GET /api/context/:id/content ──────────────────────────────────────────────
+// Returns the extracted text content for in-app viewing / markdown download.
+export const serveContextContent = async (req, res) => {
+  try {
+    const context = await Context.findOne({ _id: req.params.id, userId: req.userId });
+    if (!context) return res.status(404).json({ message: 'Context not found' });
+
+    // If content is a URL or Cloudinary block, tell frontend to use proxy instead
+    const isFileRef = extractContextFileUrl(context) !== null &&
+      (context.content.startsWith('http') || context.content.includes('[Cloudinary File]'));
+
+    res.json({
+      title: context.title,
+      type: context.type,
+      hasFile: !!extractContextFileUrl(context),
+      isFileRef,
+      text: isFileRef ? null : context.content,
+      proxyUrl: extractContextFileUrl(context) ? `/api/context/${context._id}/proxy` : null,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

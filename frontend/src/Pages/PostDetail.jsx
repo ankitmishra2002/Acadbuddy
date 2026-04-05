@@ -4,6 +4,7 @@ import { ArrowLeft, ThumbsUp, ThumbsDown, Copy, Eye, FileText, Download } from '
 import api from '../services/api';
 import useAuthStore from '../store/authStore';
 import { downloadAsMarkdown } from '../utils/downloadUtils';
+import { resolveSlideBullets, resolveSpeakerNotes } from '../utils/pptSlideUtils';
 import { useToast } from '../context/ToastContext';
 
 const PostDetail = () => {
@@ -337,24 +338,35 @@ const PostDetail = () => {
               if (post.type === 'ppt' && content.slides) {
                 return (
                   <div className="space-y-6">
-                    {content.slides.map((slide, index) => (
-                      <div key={index} className="border-l-4 border-purple-500 dark:border-purple-400 pl-6 py-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
-                        <h3 className="text-xl font-bold mb-3 text-slate-800 dark:text-slate-100">Slide {index + 1}: {slide.title}</h3>
-                        {slide.bullets && slide.bullets.length > 0 && (
-                          <ul className="list-disc list-inside space-y-2 text-slate-700 dark:text-slate-300">
-                            {slide.bullets.map((bullet, bulletIndex) => (
-                              <li key={bulletIndex}>{bullet}</li>
-                            ))}
-                          </ul>
-                        )}
-                        {slide.speakerNotes && (
-                          <div className="mt-4 p-4 bg-white dark:bg-slate-700/40 rounded-xl border border-slate-200 dark:border-slate-600">
-                            <p className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Speaker Notes:</p>
-                            <p className="text-slate-700 dark:text-slate-300">{slide.speakerNotes}</p>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                    {content.slides.map((slide, index) => {
+                      const bullets = resolveSlideBullets(slide);
+                      const speakerNotes = resolveSpeakerNotes(slide);
+                      return (
+                        <div
+                          key={index}
+                          className="border-l-4 border-purple-500 dark:border-purple-400 pl-6 py-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl"
+                        >
+                          <h3 className="text-xl font-bold mb-3 text-slate-800 dark:text-slate-100">
+                            Slide {index + 1}: {slide.title}
+                          </h3>
+                          {bullets.length > 0 && (
+                            <ul className="list-disc list-inside space-y-2 text-slate-700 dark:text-slate-300 leading-relaxed">
+                              {bullets.map((bullet, bulletIndex) => (
+                                <li key={bulletIndex}>{bullet}</li>
+                              ))}
+                            </ul>
+                          )}
+                          {speakerNotes && (
+                            <div className="mt-4 p-4 bg-white dark:bg-slate-700/40 rounded-xl border border-slate-200 dark:border-slate-600">
+                              <p className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
+                                Speaker Notes:
+                              </p>
+                              <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{speakerNotes}</p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 );
               } else if (content.sections && Array.isArray(content.sections)) {

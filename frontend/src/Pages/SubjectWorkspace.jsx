@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { FileText, FileCheck, Presentation, GraduationCap, Brain, ArrowLeft } from 'lucide-react';
 import api from '../services/api';
 import { recordFeatureVisit } from '../utils/recentActivity';
@@ -10,8 +10,11 @@ import ExamMode from '../components/exam/ExamMode';
 import ContextManager from '../components/content/ContextManager';
 import ContentList from '../components/content/ContentList';
 
+const VALID_TABS = new Set(['context', 'notes', 'report', 'ppt', 'exam', 'content']);
+
 const SubjectWorkspace = () => {
   const { id } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [subject, setSubject] = useState(null);
   const [activeTab, setActiveTab] = useState('context');
   const [loading, setLoading] = useState(true);
@@ -19,6 +22,24 @@ const SubjectWorkspace = () => {
   useEffect(() => {
     fetchSubject();
   }, [id]);
+
+  useEffect(() => {
+    const t = searchParams.get('tab');
+    if (t && VALID_TABS.has(t)) setActiveTab(t);
+  }, [id, searchParams]);
+
+  const selectTab = (tabId) => {
+    setActiveTab(tabId);
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        if (tabId === 'context') p.delete('tab');
+        else p.set('tab', tabId);
+        return p;
+      },
+      { replace: true }
+    );
+  };
 
   const fetchSubject = async () => {
     try {
@@ -93,7 +114,7 @@ const SubjectWorkspace = () => {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => selectTab(tab.id)}
                 className={`flex items-center gap-1 sm:gap-2 py-3 sm:py-4 px-2 sm:px-1 border-b-2 font-bold text-xs sm:text-sm whitespace-nowrap transition-colors duration-200 ${
                   activeTab === tab.id
                     ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-400'

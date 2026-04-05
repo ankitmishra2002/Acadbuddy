@@ -3,6 +3,21 @@ import { FileText, Sparkles } from 'lucide-react';
 import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 
+const formatDefinition = (def) => {
+  if (def == null) return { term: '', body: '' };
+  if (typeof def === 'string') {
+    const idx = def.indexOf(':');
+    if (idx > 0 && idx < 80) {
+      return { term: def.slice(0, idx).trim(), body: def.slice(idx + 1).trim() };
+    }
+    return { term: 'Definition', body: def.trim() };
+  }
+  return {
+    term: def.term != null ? String(def.term) : 'Term',
+    body: def.definition != null ? String(def.definition) : String(def.text || '')
+  };
+};
+
 const RapidSheetsGenerator = ({ subjectId }) => {
   const toast = useToast();
   const [formData, setFormData] = useState({
@@ -21,6 +36,7 @@ const RapidSheetsGenerator = ({ subjectId }) => {
         topics: topicsArray.length > 0 ? topicsArray : undefined
       });
       setGeneratedContent(response.data);
+      toast.success('Revision sheets generated.');
     } catch (error) {
       toast.error('Failed to generate revision sheets: ' + (error.response?.data?.message || error.message));
     } finally {
@@ -56,50 +72,68 @@ const RapidSheetsGenerator = ({ subjectId }) => {
       </form>
 
       {generatedContent && (
-        <div className="bg-purple-50 dark:bg-purple-900/20 p-6 sm:p-8 rounded-[2rem] border border-purple-100 dark:border-purple-800/50 shadow-sm transition-all focus-within:ring-2 focus-within:ring-purple-500">
-          <h4 className="text-2xl font-extrabold mb-8 text-purple-800 dark:text-purple-300 tracking-tight flex items-center gap-3">
-            <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
+        <div className="bg-purple-50 dark:bg-purple-900/20 p-6 sm:p-8 rounded-[2rem] border border-purple-100 dark:border-purple-800/50 shadow-sm transition-all focus-within:ring-2 focus-within:ring-purple-500 overflow-x-auto max-w-full min-w-0">
+          <h4 className="text-2xl font-extrabold mb-8 text-purple-800 dark:text-purple-300 tracking-tight flex items-center gap-3 break-words">
+            <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse shrink-0"></span>
             {generatedContent.title}
           </h4>
-          
-          {generatedContent.content.keyPoints && (
-            <div className="bg-white dark:bg-purple-900/40 p-5 sm:p-7 rounded-2xl border border-purple-100/50 dark:border-purple-800/50 shadow-[0_2px_10px_rgb(0,0,0,0.02)] mb-6">
+
+          {generatedContent.content?.keyPoints?.length > 0 && (
+            <div className="bg-white dark:bg-purple-900/40 p-5 sm:p-7 rounded-2xl border border-purple-100/50 dark:border-purple-800/50 shadow-[0_2px_10px_rgb(0,0,0,0.02)] mb-6 min-w-0">
               <h5 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
                 <span className="text-purple-500">⚡</span> Key Points
               </h5>
-              <ul className="list-disc list-outside ml-5 space-y-2">
+              <ul className="list-disc list-inside sm:list-outside sm:ml-5 space-y-2.5 min-w-0">
                 {generatedContent.content.keyPoints.map((point, index) => (
-                  <li key={index} className="text-slate-700 dark:text-slate-300 leading-relaxed font-medium">{point}</li>
+                  <li
+                    key={index}
+                    className="text-slate-700 dark:text-slate-300 leading-relaxed font-medium break-words"
+                  >
+                    {typeof point === 'string' ? point : String(point)}
+                  </li>
                 ))}
               </ul>
             </div>
           )}
-          
-          {generatedContent.content.formulae && generatedContent.content.formulae.length > 0 && (
-            <div className="bg-slate-900 dark:bg-slate-900/80 p-5 sm:p-7 rounded-2xl border border-slate-700 border-l-4 border-l-purple-500 mb-6 group transition-all hover:shadow-lg">
+
+          {generatedContent.content?.formulae?.length > 0 && (
+            <div className="bg-slate-900 dark:bg-slate-900/80 p-5 sm:p-7 rounded-2xl border border-slate-700 border-l-4 border-l-purple-500 mb-6 group transition-all hover:shadow-lg min-w-0 overflow-x-auto">
               <h5 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                 <span className="text-purple-400">∑</span> Formulae
               </h5>
-              <ul className="list-none space-y-3">
+              <ul className="list-none space-y-3 min-w-0">
                 {generatedContent.content.formulae.map((formula, index) => (
-                  <li key={index} className="font-mono text-purple-200 bg-slate-800/50 dark:bg-slate-800 px-4 py-2 rounded-xl border border-slate-700/50">{formula}</li>
+                  <li
+                    key={index}
+                    className="font-mono text-sm sm:text-base text-purple-200 bg-slate-800/50 dark:bg-slate-800 px-4 py-2 rounded-xl border border-slate-700/50 whitespace-pre-wrap break-words"
+                  >
+                    {typeof formula === 'string' ? formula : String(formula)}
+                  </li>
                 ))}
               </ul>
             </div>
           )}
-          
-          {generatedContent.content.definitions && generatedContent.content.definitions.length > 0 && (
-            <div className="bg-white dark:bg-purple-900/40 p-5 sm:p-7 rounded-2xl border border-purple-100/50 dark:border-purple-800/50 shadow-[0_2px_10px_rgb(0,0,0,0.02)]">
+
+          {generatedContent.content?.definitions?.length > 0 && (
+            <div className="bg-white dark:bg-purple-900/40 p-5 sm:p-7 rounded-2xl border border-purple-100/50 dark:border-purple-800/50 shadow-[0_2px_10px_rgb(0,0,0,0.02)] min-w-0">
               <h5 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
                 <span className="text-purple-500">📖</span> Definitions
               </h5>
               <div className="space-y-4">
-                {generatedContent.content.definitions.map((def, index) => (
-                  <div key={index} className="border-l-4 border-purple-400 bg-purple-50/50 dark:bg-purple-900/20 pl-4 py-3 pr-3 rounded-r-xl transition-all hover:bg-purple-50 dark:hover:bg-purple-900/40">
-                    <strong className="text-slate-800 dark:text-slate-100 text-base">{def.term}:</strong> 
-                    <p className="text-slate-600 dark:text-slate-400 mt-1">{def.definition}</p>
-                  </div>
-                ))}
+                {generatedContent.content.definitions.map((def, index) => {
+                  const { term, body } = formatDefinition(def);
+                  return (
+                    <div
+                      key={index}
+                      className="border-l-4 border-purple-400 bg-purple-50/50 dark:bg-purple-900/20 pl-4 py-3 pr-3 rounded-r-xl transition-all hover:bg-purple-50 dark:hover:bg-purple-900/40 min-w-0"
+                    >
+                      <strong className="text-slate-800 dark:text-slate-100 text-base break-words">{term}:</strong>
+                      <p className="text-slate-600 dark:text-slate-400 mt-1 whitespace-pre-wrap break-words leading-relaxed">
+                        {body}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

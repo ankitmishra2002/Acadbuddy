@@ -138,7 +138,11 @@ const ContentList = ({ subjectId }) => {
             <div 
               key={content._id} 
               className="bg-white dark:bg-slate-900/80 p-6 rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-slate-100 dark:border-slate-800 hover:shadow-xl hover:border-blue-200 dark:hover:border-blue-800/50 transition-all cursor-pointer group flex flex-col h-full transform hover:-translate-y-1"
-              onClick={() => navigate(`/content/${content._id}`)}
+              onClick={() =>
+                navigate(`/content/${content._id}`, {
+                  state: { subjectReturnTab: 'content', subjectId }
+                })
+              }
             >
               <div className="flex-1">
                 <span className="text-xs font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-400 px-3 py-1.5 rounded-lg border border-blue-200/50 dark:border-blue-800/50 mb-4 inline-block tracking-wide uppercase">
@@ -155,6 +159,7 @@ const ContentList = ({ subjectId }) => {
               <div className="flex justify-between items-center mt-6 pt-5 border-t border-slate-100 dark:border-slate-800/80 opacity-60 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                 <Link
                   to={`/focus/${content.type}/${content._id}`}
+                  state={{ subjectReturnTab: 'content', subjectId }}
                   className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                   title="View in Focus Mode"
                 >

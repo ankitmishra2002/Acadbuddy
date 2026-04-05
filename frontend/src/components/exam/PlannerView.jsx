@@ -13,7 +13,7 @@ const PlannerView = ({ subjectId, examPlan, onUpdate }) => {
 
   const handleGenerate = async (e) => {
     e.preventDefault();
-    if (!examPlan?.blueprint) {
+    if (!examPlan?.blueprint?.units?.length) {
       toast.warning('Generate an exam blueprint first.');
       return;
     }
@@ -35,7 +35,7 @@ const PlannerView = ({ subjectId, examPlan, onUpdate }) => {
     <div className="space-y-8">
       <h3 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">Revision Planner</h3>
 
-      {!examPlan?.blueprint && (
+      {!examPlan?.blueprint?.units?.length && (
         <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 text-amber-800 dark:text-amber-400 p-5 rounded-xl font-medium flex items-center gap-3">
           <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
           Please generate an exam blueprint first before creating a revision planner.
@@ -70,7 +70,7 @@ const PlannerView = ({ subjectId, examPlan, onUpdate }) => {
         </div>
         <button
           type="submit"
-          disabled={loading || !examPlan?.blueprint}
+          disabled={loading || !examPlan?.blueprint?.units?.length}
           className="w-full bg-blue-600 text-white font-bold py-3.5 px-4 rounded-xl hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/30 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
           <Sparkles size={20} />

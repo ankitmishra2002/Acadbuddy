@@ -21,6 +21,7 @@ const MockPaperGenerator = ({ subjectId }) => {
         ...formData
       });
       setGeneratedContent(response.data);
+      toast.success('Mock paper generated.');
     } catch (error) {
       toast.error('Failed to generate mock paper: ' + (error.response?.data?.message || error.message));
     } finally {
@@ -43,7 +44,9 @@ const MockPaperGenerator = ({ subjectId }) => {
               min="0"
               max="20"
               value={formData.shortCount}
-              onChange={(e) => setFormData({ ...formData, shortCount: parseInt(e.target.value) })}
+              onChange={(e) =>
+                setFormData({ ...formData, shortCount: Math.min(20, Math.max(0, parseInt(e.target.value, 10) || 0)) })
+              }
               className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-slate-800 dark:text-slate-100 font-medium cursor-pointer"
             />
           </div>
@@ -56,7 +59,9 @@ const MockPaperGenerator = ({ subjectId }) => {
               min="0"
               max="10"
               value={formData.longCount}
-              onChange={(e) => setFormData({ ...formData, longCount: parseInt(e.target.value) })}
+              onChange={(e) =>
+                setFormData({ ...formData, longCount: Math.min(10, Math.max(0, parseInt(e.target.value, 10) || 0)) })
+              }
               className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-slate-800 dark:text-slate-100 font-medium cursor-pointer"
             />
           </div>
@@ -80,25 +85,42 @@ const MockPaperGenerator = ({ subjectId }) => {
             {generatedContent.title}
           </h4>
           <div className="space-y-6">
-            {generatedContent.content.questions?.map((question, index) => (
-              <div key={index} className="bg-white dark:bg-blue-900/40 p-5 sm:p-7 rounded-2xl border-l-4 border-l-blue-500 border-y border-r border-blue-100/50 dark:border-blue-800/50 shadow-[0_2px_10px_rgb(0,0,0,0.02)] transition-all hover:shadow-md">
-                <div className="flex items-start gap-3 mb-4">
+            {generatedContent.content.questions?.map((question, index) => {
+              const isLong = question.type === 'long';
+              return (
+              <div
+                key={index}
+                className={`bg-white dark:bg-blue-900/40 p-5 sm:p-7 rounded-2xl border-y border-r border-blue-100/50 dark:border-blue-800/50 shadow-[0_2px_10px_rgb(0,0,0,0.02)] transition-all hover:shadow-md border-l-4 ${
+                  isLong ? 'border-l-violet-500' : 'border-l-blue-500'
+                }`}
+              >
+                <div className="flex items-start gap-3 mb-4 flex-wrap">
                   <span className="font-extrabold text-blue-600 dark:text-blue-400 text-xl">Q{index + 1}.</span>
                   <span className={`text-xs font-bold px-3 py-1.5 rounded-lg border flex-shrink-0 mt-0.5 ${
-                    question.type === 'short' ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-400 dark:border-emerald-800/50' : 'bg-violet-100 text-violet-800 border-violet-200 dark:bg-violet-900/40 dark:text-violet-400 dark:border-violet-800/50'
+                    !isLong ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-400 dark:border-emerald-800/50' : 'bg-violet-100 text-violet-800 border-violet-200 dark:bg-violet-900/40 dark:text-violet-400 dark:border-violet-800/50'
                   }`}>
-                    {question.type === 'short' ? 'Short Answer' : 'Long Answer'}
+                    {!isLong ? 'Short answer (brief)' : 'Long answer (detailed)'}
                   </span>
                 </div>
-                <p className="mb-5 text-slate-800 dark:text-slate-100 font-semibold text-lg leading-relaxed">{question.question}</p>
+                <p className="mb-5 text-slate-800 dark:text-slate-100 font-semibold text-lg leading-relaxed break-words">{question.question}</p>
                 {question.answer && (
-                  <div className="bg-slate-50 dark:bg-slate-900/60 p-5 rounded-xl border border-slate-200 dark:border-slate-800 transition-all">
-                    <p className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wide">Answer Guide</p>
-                    <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed font-medium">{question.answer}</p>
+                  <div
+                    className={`p-5 rounded-xl border transition-all ${
+                      isLong
+                        ? 'bg-violet-50/80 dark:bg-violet-950/30 border-violet-200 dark:border-violet-800/50'
+                        : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800'
+                    }`}
+                  >
+                    <p className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wide">
+                      {isLong ? 'Model answer (extended)' : 'Model answer (concise)'}
+                    </p>
+                    <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed font-medium break-words">
+                      {question.answer}
+                    </p>
                   </div>
                 )}
               </div>
-            ))}
+            );})}
           </div>
         </div>
       )}

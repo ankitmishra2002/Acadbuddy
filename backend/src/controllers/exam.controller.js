@@ -107,7 +107,7 @@ export const generateRevisionPlanner = async (req, res) => {
     }
 
     let examPlan = await ExamPlan.findOne({ userId: req.userId, subjectId });
-    if (!examPlan || !examPlan.blueprint) {
+    if (!examPlan?.blueprint?.units?.length) {
       return res.status(400).json({ message: 'Please generate exam blueprint first' });
     }
 

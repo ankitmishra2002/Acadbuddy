@@ -12,12 +12,20 @@ export const generateMarkdown = (data) => {
   if (data.slides && Array.isArray(data.slides)) {
     data.slides.forEach((slide, idx) => {
       markdown += `## Slide ${idx + 1}: ${slide.title}\n\n`;
-      if (slide.bullets && slide.bullets.length > 0) {
-        slide.bullets.forEach(b => markdown += `- ${b}\n`);
+      const bullets = Array.isArray(slide.bullets)
+        ? slide.bullets.filter(Boolean)
+        : [];
+      if (bullets.length > 0) {
+        bullets.forEach((b) => {
+          markdown += `- ${b}\n`;
+        });
         markdown += '\n';
+      } else if (typeof slide.content === 'string' && slide.content.trim()) {
+        markdown += `${slide.content.trim()}\n\n`;
       }
-      if (slide.speakerNotes) {
-        markdown += `**Speaker Notes:**\n${slide.speakerNotes}\n\n`;
+      const notes = slide.speakerNotes || slide.notes;
+      if (notes) {
+        markdown += `**Speaker Notes:**\n${notes}\n\n`;
       }
       markdown += '---\n\n';
     });

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { ArrowLeft, Eye, Share2, Download, FileText, Presentation, FileCheck, BookOpen, ClipboardList, Sparkles } from 'lucide-react';
 import api from '../services/api';
 import Layout from '../components/layout/Layout';
 import { downloadAsMarkdown } from '../utils/downloadUtils';
+import { resolveSlideBullets, resolveSpeakerNotes } from '../utils/pptSlideUtils';
 import useAuthStore from '../store/authStore';
 import { useToast } from '../context/ToastContext';
 
@@ -12,6 +13,7 @@ const ContentView = () => {
   const toast = useToast();
   const { contentId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuthStore();
   const [content, setContent] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -139,13 +141,19 @@ const ContentView = () => {
     );
   }
 
+  const subjectIdForLink = content.subjectId?._id || content.subjectId;
+  const subjectBackPath =
+    location.state?.subjectReturnTab === 'content' && subjectIdForLink
+      ? `/subjects/${subjectIdForLink}?tab=content`
+      : `/subjects/${subjectIdForLink}`;
+
   return (
     <Layout>
       <div className="max-w-5xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="mb-6">
           <Link
-            to={`/subjects/${content.subjectId?._id || content.subjectId}`}
+            to={subjectBackPath}
             className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4"
           >
             <ArrowLeft size={20} />
@@ -187,6 +195,10 @@ const ContentView = () => {
               </button>
               <Link
                 to={`/focus/${content.type}/${content._id}`}
+                state={{
+                  subjectReturnTab: location.state?.subjectReturnTab,
+                  subjectId: subjectIdForLink
+                }}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 <Eye size={18} />
@@ -206,28 +218,44 @@ const ContentView = () => {
         {/* Content Display */}
         <div className="bg-white rounded-lg shadow-sm p-8">
           {content.type === 'ppt' && content.content?.slides ? (
-            <div className="space-y-8">
-              {content.content.slides.map((slide, index) => (
-                <div key={index} className="border-l-4 border-purple-500 pl-6 py-4">
-                  <h2 className="text-2xl font-bold text-gray-800 mb-4">{slide.title}</h2>
-                  {slide.bullets && slide.bullets.length > 0 && (
-                    <ul className="space-y-2 text-gray-700">
-                      {slide.bullets.map((bullet, bulletIndex) => (
-                        <li key={bulletIndex} className="flex items-start">
-                          <span className="mr-2 text-purple-600">•</span>
-                          <span>{bullet}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {slide.speakerNotes && (
-                    <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                      <p className="text-sm font-medium text-gray-600 mb-1">Speaker Notes:</p>
-                      <p className="text-gray-700">{slide.speakerNotes}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
+            <div className="space-y-6">
+              {content.content.slides.map((slide, index) => {
+                const bullets = resolveSlideBullets(slide);
+                const speakerNotes = resolveSpeakerNotes(slide);
+                return (
+                  <div
+                    key={index}
+                    className="rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50/90 dark:bg-slate-800/50 p-6 shadow-sm"
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-wide text-purple-600 dark:text-purple-400 mb-2">
+                      Slide {index + 1}
+                    </p>
+                    <h2 className="text-xl font-bold text-indigo-900 dark:text-indigo-200 mb-4">
+                      {slide.title}
+                    </h2>
+                    {bullets.length > 0 && (
+                      <ul className="space-y-2.5 text-slate-700 dark:text-slate-300 leading-relaxed">
+                        {bullets.map((bullet, bulletIndex) => (
+                          <li key={bulletIndex} className="flex items-start gap-2">
+                            <span className="mt-0.5 shrink-0 text-purple-600 dark:text-purple-400">•</span>
+                            <span>{bullet}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {speakerNotes && (
+                      <div className="mt-4 p-4 bg-white dark:bg-slate-900/60 rounded-lg border border-slate-200 dark:border-slate-600">
+                        <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">
+                          Speaker notes
+                        </p>
+                        <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">
+                          {speakerNotes}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           ) : content.content?.sections ? (
             <div className="prose max-w-none">

@@ -11,7 +11,8 @@ const BlueprintView = ({ subjectId, examPlan, onUpdate }) => {
     setLoading(true);
     try {
       await api.post('/exam/blueprint', { subjectId });
-      onUpdate();
+      await onUpdate();
+      toast.success('Exam blueprint generated.');
     } catch (error) {
       toast.error('Failed to generate blueprint: ' + (error.response?.data?.message || error.message));
     } finally {
@@ -49,12 +50,13 @@ const BlueprintView = ({ subjectId, examPlan, onUpdate }) => {
                       unit.difficulty === 'medium' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-400' :
                       'bg-rose-100 text-rose-800 dark:bg-rose-900/50 dark:text-rose-400'
                     }`}>
-                      {unit.difficulty.toUpperCase()}
+                      {(unit.difficulty || 'medium').toUpperCase()}
                     </span>
                   </div>
                 </div>
                 <p className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-4 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span> Frequency: {unit.frequency} questions
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+                  Frequency: {unit.frequency != null ? unit.frequency : '—'} questions
                 </p>
                 {unit.importantTopics && unit.importantTopics.length > 0 && (
                   <div className="pt-4 border-t border-indigo-100 dark:border-indigo-800/40">
