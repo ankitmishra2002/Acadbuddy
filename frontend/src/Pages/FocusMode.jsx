@@ -1,21 +1,32 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { X, Clock, Play, Pause, Square } from 'lucide-react';
+import { X, Clock, Play, Pause, Square, Maximize2, Minimize2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import api from '../services/api';
 import { recordFeatureVisit } from '../utils/recentActivity';
 import { resolveSlideBullets, resolveSpeakerNotes } from '../utils/pptSlideUtils';
 import { formatRevisionDefinition } from '../utils/revisionFormat';
+import { setFocusModeActive } from '../utils/focusModeGate';
+import { useToast } from '../context/ToastContext';
 
 const FocusMode = () => {
   const { mode, contentId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const toast = useToast();
+  const rootRef = useRef(null);
   const [content, setContent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sessionId, setSessionId] = useState(null);
   const [timer, setTimer] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+
+  useLayoutEffect(() => {
+    setFocusModeActive(true);
+    toast.dismissAll?.();
+    return () => setFocusModeActive(false);
+  }, [toast]);
 
   useEffect(() => {
     if (!mode || !contentId) return;
@@ -25,6 +36,15 @@ const FocusMode = () => {
       path: `/focus/${mode}/${contentId}`
     });
   }, [mode, contentId]);
+
+  useEffect(() => {
+    if (!content?.title) return;
+    const prev = document.title;
+    document.title = `Focus · ${content.title}`;
+    return () => {
+      document.title = prev;
+    };
+  }, [content?.title]);
 
   useEffect(() => {
     if (!contentId) return;
@@ -72,7 +92,7 @@ const FocusMode = () => {
 
   useEffect(() => {
     let interval = null;
-    if (isRunning) {
+    if (isRunning && !document.hidden) {
       interval = setInterval(() => {
         setTimer((prev) => prev + 1);
       }, 1000);
@@ -80,12 +100,41 @@ const FocusMode = () => {
     return () => clearInterval(interval);
   }, [isRunning]);
 
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.hidden) setIsRunning(false);
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
+
+  useEffect(() => {
+    const onFs = () => setFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener('fullscreenchange', onFs);
+    return () => document.removeEventListener('fullscreenchange', onFs);
+  }, []);
+
+  const toggleFullscreen = useCallback(async () => {
+    const el = rootRef.current;
+    if (!el) return;
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await el.requestFullscreen?.({ navigationUI: 'hide' });
+      }
+    } catch (_) {}
+  }, []);
+
   const endSession = async () => {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+    } catch (_) {}
     if (sessionId) {
       try {
         await api.put(`/sessions/${sessionId}/end`);
       } catch (error) {
-        console.error('Failed to end session:', error);
+        if (import.meta.env.DEV) console.error('Failed to end session:', error);
       }
     }
     const st = location.state;
@@ -113,20 +162,23 @@ const FocusMode = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
-        <div>Loading...</div>
+      <div className="fixed inset-0 z-[200000] flex min-h-screen items-center justify-center bg-gray-950 text-white">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+          <p className="text-sm text-gray-400">Preparing focus…</p>
+        </div>
       </div>
     );
   }
 
   if (!content) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center gap-4 px-4">
-        <p className="text-gray-400 text-center">Could not load this content.</p>
+      <div className="fixed inset-0 z-[200000] flex min-h-screen flex-col items-center justify-center gap-4 bg-gray-950 px-4 text-white">
+        <p className="text-center text-gray-400">Could not load this content.</p>
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600"
+          className="rounded-lg bg-gray-700 px-4 py-2 hover:bg-gray-600"
         >
           Go back
         </button>
@@ -135,33 +187,61 @@ const FocusMode = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <div className="bg-gray-800 border-b border-gray-700 px-6 py-4 flex justify-between items-center">
-        <div className="flex items-center gap-4 min-w-0">
-          <button type="button" onClick={endSession} className="text-gray-400 hover:text-white shrink-0">
-            <X size={24} />
+    <div
+      ref={rootRef}
+      className="fixed inset-0 z-[200000] flex min-h-0 flex-col overflow-hidden bg-gray-900 text-white"
+    >
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-gray-800 bg-gray-950/95 px-4 py-3 backdrop-blur-md sm:px-6">
+        <div className="flex min-w-0 items-center gap-3">
+          <button
+            type="button"
+            onClick={endSession}
+            className="shrink-0 text-gray-400 hover:text-white"
+            aria-label="Exit focus"
+          >
+            <X size={22} />
           </button>
-          <h1 className="text-xl font-semibold truncate">{content?.title}</h1>
+          <div className="min-w-0">
+            <h1 className="truncate text-lg font-semibold sm:text-xl">{content?.title}</h1>
+            <p className="truncate text-[11px] text-gray-500 sm:text-xs">
+              Distraction-free · Toasts muted · Timer pauses when you leave this tab
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-4 shrink-0">
-          <div className="flex items-center gap-2">
-            <Clock size={20} />
-            <span className="font-mono">{formatTime(timer)}</span>
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            onClick={toggleFullscreen}
+            className="rounded-lg bg-gray-800 p-2 text-gray-300 hover:bg-gray-700 hover:text-white"
+            title={fullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+            aria-label={fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+          >
+            {fullscreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
+          </button>
+          <div className="flex items-center gap-1.5 text-sm">
+            <Clock size={18} className="text-gray-500" />
+            <span className="font-mono tabular-nums">{formatTime(timer)}</span>
           </div>
           <button
             type="button"
             onClick={() => setIsRunning(!isRunning)}
-            className="p-2 bg-gray-700 rounded-lg hover:bg-gray-600"
+            className="rounded-lg bg-gray-800 p-2 hover:bg-gray-700"
+            aria-label={isRunning ? 'Pause timer' : 'Resume timer'}
           >
             {isRunning ? <Pause size={20} /> : <Play size={20} />}
           </button>
-          <button type="button" onClick={endSession} className="p-2 bg-red-600 rounded-lg hover:bg-red-700">
+          <button
+            type="button"
+            onClick={endSession}
+            className="rounded-lg bg-red-600/90 p-2 hover:bg-red-600"
+            aria-label="End session"
+          >
             <Square size={20} />
           </button>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 py-8">
+      <div className="mx-auto max-w-5xl flex-1 overflow-y-auto px-4 py-6 sm:px-6 sm:py-8">
         {content?.type === 'smart_study' && c?.mode === 'summarize' && c?.summary ? (
           <div className="prose prose-invert max-w-none">
             <ReactMarkdown>{c.summary}</ReactMarkdown>
@@ -218,12 +298,14 @@ const FocusMode = () => {
               );
             })}
           </div>
-        ) : c?.sections ? (
-          <div className="prose prose-invert max-w-none">
+        ) : c?.sections && Array.isArray(c.sections) && c.sections.length > 0 ? (
+          <div className="prose prose-invert max-w-none prose-headings:text-white prose-p:text-gray-200 prose-li:text-gray-200">
             {c.sections.map((section, index) => (
-              <div key={index} className="mb-8">
-                <h2 className="text-3xl font-bold mb-4">{section.title}</h2>
-                <p className="text-lg leading-relaxed whitespace-pre-wrap">{section.content}</p>
+              <div key={index} className="mb-10">
+                <h2 className="mb-4 text-2xl font-bold text-white sm:text-3xl">{section.title}</h2>
+                <div className="text-base leading-relaxed sm:text-lg">
+                  <ReactMarkdown>{String(section.content ?? '')}</ReactMarkdown>
+                </div>
               </div>
             ))}
           </div>

@@ -21,6 +21,12 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+/** Session helpers must not trigger a full-page login redirect — user can still read content in Focus Mode */
+function isSessionAuxiliaryRequest(config) {
+  const url = config?.url || '';
+  return url.includes('/sessions/start') || /\/sessions\/[^/]+\/end/.test(url);
+}
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -57,16 +63,21 @@ api.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return api(originalRequest);
       } catch (refreshError) {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        window.location.href = '/login';
+        if (!isSessionAuxiliaryRequest(originalRequest)) {
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          window.location.href = '/login';
+        }
+        return Promise.reject(refreshError);
       }
     }
 
     if (error.response?.status === 401) {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      window.location.href = '/login';
+      if (!isSessionAuxiliaryRequest(originalRequest)) {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        window.location.href = '/login';
+      }
     }
 
     return Promise.reject(error);

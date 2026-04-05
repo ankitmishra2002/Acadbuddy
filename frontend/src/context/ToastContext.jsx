@@ -1,4 +1,5 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useMemo, useState, useSyncExternalStore } from 'react';
+import { isFocusModeActive, subscribeFocusMode } from '../utils/focusModeGate';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, XCircle, Info, AlertTriangle, X } from 'lucide-react';
@@ -33,7 +34,9 @@ const styles = {
 };
 
 function ToastViewport({ toasts, onDismiss }) {
+  const focusActive = useSyncExternalStore(subscribeFocusMode, isFocusModeActive, isFocusModeActive);
   if (typeof document === 'undefined') return null;
+  if (focusActive) return null;
 
   return createPortal(
     <div
@@ -96,8 +99,15 @@ export function ToastProvider({ children }) {
     setToasts((prev) => prev.filter((x) => x.id !== id));
   }, []);
 
+  const dismissAll = useCallback(() => {
+    setToasts([]);
+  }, []);
+
   const push = useCallback(
     (message, opts = {}) => {
+      if (isFocusModeActive()) {
+        return null;
+      }
       const id = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
       const { type = 'info', duration = 4800, title } = opts;
       setToasts((prev) => [...prev, { id, message, type, title }]);
@@ -116,8 +126,9 @@ export function ToastProvider({ children }) {
       info: (message, opts) => push(message, { ...opts, type: 'info' }),
       warning: (message, opts) => push(message, { ...opts, type: 'warning' }),
       dismiss: remove,
+      dismissAll,
     }),
-    [push, remove]
+    [push, remove, dismissAll]
   );
 
   return (

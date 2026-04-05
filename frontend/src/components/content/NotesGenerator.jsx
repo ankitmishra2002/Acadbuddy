@@ -108,7 +108,11 @@ const NotesGenerator = ({ subjectId }) => {
           </div>
           <div className="mt-8 flex gap-3 pt-6 border-t border-emerald-200 dark:border-emerald-800/50">
             <Link
-              to={`/focus/notes/${generatedContent._id}`}
+              to={`/focus/${generatedContent.type || 'notes'}/${generatedContent._id}`}
+              state={{
+                subjectReturnTab: 'content',
+                subjectId,
+              }}
               className="bg-emerald-600 text-white font-bold px-6 py-3 rounded-xl hover:bg-emerald-700 hover:shadow-lg hover:shadow-emerald-500/20 transition-all flex items-center gap-2"
             >
               Open in Focus Mode
