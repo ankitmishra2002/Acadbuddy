@@ -29,11 +29,29 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 7000;
 
-// Origin whitelist for CORS
-const allowedOrigins = [
+// Behind Render / other reverse proxies — required for correct client IPs and rate limiting
+if (process.env.NODE_ENV === 'production' || process.env.TRUST_PROXY === '1') {
+    app.set('trust proxy', 1);
+}
+
+// Origin whitelist for CORS (FRONTEND_URL, CLIENT_URL, or comma-separated FRONTEND_URLS)
+const rawOriginEnv = [
     process.env.FRONTEND_URL,
-    "http://localhost:3000",
-].filter(Boolean).map(url => url.replace(/\/$/, '')); // Remove trailing slashes
+    process.env.CLIENT_URL,
+    process.env.FRONTEND_URLS,
+]
+    .filter(Boolean)
+    .flatMap((v) => String(v).split(','))
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+const allowedOrigins = [
+    ...new Set([
+        ...rawOriginEnv.map((url) => url.replace(/\/$/, '')),
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+    ]),
+];
 
 // CORS configuration
 const corsOptions = {
@@ -43,10 +61,10 @@ const corsOptions = {
         // Normalize origin by removing trailing slash
         const normalizedOrigin = origin.replace(/\/$/, '');
 
-        if (allowedOrigins.includes(normalizedOrigin) || /\.vercel\.app$/.test(normalizedOrigin)) {
+        if (allowedOrigins.includes(normalizedOrigin) || /\.vercel\.app$/i.test(normalizedOrigin)) {
             callback(null, true);
         } else {
-            callback(new Error("CORS not allowed for origin: " + origin));
+            callback(null, false);
         }
     },
     credentials: true,
@@ -78,7 +96,6 @@ const apiLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     message: { success: false, error: "Too many requests, please try again later." },
-    validate: { xForwardedForHeader: false, trustProxy: false }
 });
 app.use('/api/', apiLimiter);
 

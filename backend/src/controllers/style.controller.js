@@ -166,18 +166,29 @@ export const deleteStyle = async (req, res) => {
 
 export const activateStyle = async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ message: 'Invalid style id' });
+    const rawId = req.params.id;
+    if (!rawId || typeof rawId !== 'string') {
+      return res.status(400).json({ message: 'Style id is required' });
     }
-    const style = await AnswerStyle.findOne({ _id: req.params.id, userId: req.userId });
+
+    const style = await AnswerStyle.findOne({ _id: rawId, userId: req.userId });
     if (!style) {
       return res.status(404).json({ message: 'Style profile not found' });
     }
-    await User.findByIdAndUpdate(req.userId, {
-      activeStyleProfileId: style._id
-    });
+
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.activeStyleProfileId = style._id;
+    await user.save();
+
     res.json({ message: 'Style profile activated', activeStyleProfileId: style._id });
   } catch (error) {
+    if (error.name === 'CastError') {
+      return res.status(400).json({ message: 'Invalid style id' });
+    }
     res.status(500).json({ message: error.message });
   }
 };

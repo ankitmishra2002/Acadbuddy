@@ -1,5 +1,6 @@
 import axios from 'axios';
 
+/** Set in `.env` as `VITE_API_URL` (e.g. `http://localhost:7000/api` or `https://your-api.onrender.com/api`). No default in production builds. */
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({

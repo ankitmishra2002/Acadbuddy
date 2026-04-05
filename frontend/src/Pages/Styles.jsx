@@ -1,13 +1,22 @@
 import { useState, useEffect } from 'react';
-import { Plus, Check, Trash2, Edit, Layers, Settings, FileText } from 'lucide-react';
+import { Plus, Check, Trash2, Edit, Layers, Settings, FileText, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../services/api';
 import { useToast } from '../context/ToastContext';
+
+function styleDocId(style) {
+  const v = style?._id ?? style?.id;
+  if (v == null) return '';
+  if (typeof v === 'string') return v;
+  if (typeof v === 'object' && v.$oid) return String(v.$oid);
+  return String(v);
+}
 
 const Styles = () => {
   const toast = useToast();
   const [styles, setStyles] = useState([]);
   const [defaults, setDefaults] = useState([]);
+  const [activatingId, setActivatingId] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [editingStyle, setEditingStyle] = useState(null);
   const [formData, setFormData] = useState({
@@ -30,7 +39,8 @@ const Styles = () => {
       const response = await api.get('/styles');
       setStyles(response.data);
     } catch (error) {
-      console.error('Failed to fetch styles:', error);
+      if (import.meta.env.DEV) console.error('Failed to fetch styles:', error);
+      toast.error(error.response?.data?.message || 'Could not load your styles.');
     }
   };
 
@@ -39,29 +49,52 @@ const Styles = () => {
       const response = await api.get('/styles/defaults');
       setDefaults(response.data);
     } catch (error) {
-      console.error('Failed to fetch defaults:', error);
+      if (import.meta.env.DEV) console.error('Failed to fetch defaults:', error);
+      toast.error('Could not load default presets.');
     }
   };
 
   const handleUseDefault = async (defaultStyle) => {
     try {
-      await api.post('/styles', {
+      const { data: created } = await api.post('/styles', {
         ...defaultStyle,
         isDefault: false
       });
-      fetchStyles();
+      const sid = styleDocId(created);
+      if (sid) {
+        await api.post(`/styles/activate/${encodeURIComponent(sid)}`);
+      }
+      await fetchStyles();
+      toast.success('Preset added and set as your active style.');
     } catch (error) {
-      toast.error('Failed to create style');
+      const msg = error.response?.data?.message || error.message || 'Failed to create style';
+      toast.error(msg);
     }
+  };
+
+  const buildStylePayload = () => {
+    const maxWordCount =
+      formData.maxWordCount === '' || formData.maxWordCount == null
+        ? undefined
+        : Number(formData.maxWordCount);
+    return {
+      name: formData.name.trim(),
+      sections: formData.sections,
+      tone: formData.tone,
+      approximateLength: formData.approximateLength,
+      instructions: formData.instructions?.trim() || undefined,
+      ...(Number.isFinite(maxWordCount) ? { maxWordCount } : {})
+    };
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const payload = buildStylePayload();
       if (editingStyle) {
-        await api.put(`/styles/${editingStyle._id}`, formData);
+        await api.put(`/styles/${styleDocId(editingStyle)}`, payload);
       } else {
-        await api.post('/styles', formData);
+        await api.post('/styles', payload);
       }
       setShowModal(false);
       setEditingStyle(null);
@@ -73,10 +106,11 @@ const Styles = () => {
         approximateLength: 'medium',
         instructions: ''
       });
-      fetchStyles();
+      await fetchStyles();
       toast.success(editingStyle ? 'Style updated.' : 'Style saved.');
     } catch (error) {
-      toast.error('Failed to save style');
+      const msg = error.response?.data?.message || error.message || 'Failed to save style';
+      toast.error(msg);
     }
   };
 
@@ -96,19 +130,31 @@ const Styles = () => {
   const handleDelete = async (id) => {
     if (!confirm('Are you sure you want to delete this style?')) return;
     try {
-      await api.delete(`/styles/${id}`);
-      fetchStyles();
+      await api.delete(`/styles/${encodeURIComponent(id)}`);
+      await fetchStyles();
+      toast.success('Style deleted.');
     } catch (error) {
-      toast.error('Failed to delete style');
+      const msg = error.response?.data?.message || error.message || 'Failed to delete style';
+      toast.error(msg);
     }
   };
 
-  const handleActivate = async (id) => {
+  const handleActivate = async (rawId) => {
+    const id = typeof rawId === 'string' ? rawId : rawId?.toString?.();
+    if (!id) {
+      toast.error('Invalid style id.');
+      return;
+    }
+    setActivatingId(id);
     try {
-      await api.put(`/styles/${id}/activate`);
-      fetchStyles();
+      await api.post(`/styles/activate/${encodeURIComponent(id)}`);
+      await fetchStyles();
+      toast.success('Active answer style updated.');
     } catch (error) {
-      toast.error('Failed to activate style');
+      const msg = error.response?.data?.message || error.message || 'Failed to activate style';
+      toast.error(msg);
+    } finally {
+      setActivatingId(null);
     }
   };
 
@@ -233,17 +279,23 @@ const Styles = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {styles.map((style) => (
+            {styles.map((style) => {
+              const sid = styleDocId(style);
+              return (
               <motion.div 
                 variants={itemVariants}
-                key={style._id} 
-                className={`bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border ${style.isDefault ? 'border-emerald-200 dark:border-emerald-800 shadow-emerald-500/5' : 'border-white dark:border-slate-800'} p-6 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1 transition-all flex flex-col h-full`}
+                key={sid || style.name} 
+                className={`bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border p-6 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1 transition-all flex flex-col h-full ${
+                  style.isActive
+                    ? 'border-emerald-300 dark:border-emerald-700 ring-1 ring-emerald-500/20 shadow-emerald-500/10'
+                    : 'border-white dark:border-slate-800'
+                }`}
               >
                 <div className="flex-grow">
                   <div className="flex justify-between items-start mb-4 gap-2">
                     <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">{style.name}</h3>
-                    {style.isDefault && (
-                      <span className="flex-shrink-0 text-[10px] font-extrabold uppercase tracking-widest bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full border border-emerald-200 flex items-center gap-1">
+                    {style.isActive && (
+                      <span className="flex-shrink-0 text-[10px] font-extrabold uppercase tracking-widest bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                         Active
                       </span>
@@ -279,40 +331,46 @@ const Styles = () => {
                 </div>
 
                 <div className="flex gap-2 mt-auto pt-4 border-t border-slate-100 dark:border-slate-700">
+                  {style.isActive ? (
+                    <div className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-emerald-200/80 bg-emerald-50/90 py-2.5 px-3 text-sm font-semibold text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
+                      <Check size={16} strokeWidth={3} className="shrink-0" aria-hidden />
+                      Current style
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleActivate(sid)}
+                      disabled={!sid || activatingId === sid}
+                      className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-emerald-200/50 bg-emerald-50 py-2.5 px-3 text-sm font-semibold text-emerald-700 transition-all hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 dark:hover:bg-emerald-900/40"
+                    >
+                      {activatingId === sid ? (
+                        <Loader2 size={16} className="animate-spin" aria-hidden />
+                      ) : (
+                        <Check size={16} strokeWidth={3} aria-hidden />
+                      )}
+                      Set Active
+                    </button>
+                  )}
                   <button
-                    onClick={() => handleActivate(style._id)}
-                    disabled={style.isDefault}
-                    className={`flex-1 py-2.5 px-3 rounded-xl text-sm flex items-center justify-center gap-1.5 font-semibold transition-all ${
-                      style.isDefault 
-                      ? 'bg-slate-100 text-slate-400 cursor-not-allowed hidden' 
-                      : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200/50'
-                    }`}
-                  >
-                    <Check size={16} strokeWidth={3} />
-                    Set Active
-                  </button>
-                  <button
+                    type="button"
                     onClick={() => handleEdit(style)}
-                    className="p-2.5 bg-slate-50 dark:bg-slate-800/50 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-200 transition-all"
+                    className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-slate-600 transition-all hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:border-blue-800 dark:hover:bg-blue-950/40"
                     title="Edit Style"
                   >
                     <Edit size={18} />
                   </button>
                   <button
-                    onClick={() => handleDelete(style._id)}
-                    disabled={style.isDefault}
-                    className={`p-2.5 rounded-xl border transition-all ${
-                      style.isDefault
-                      ? 'bg-slate-50 dark:bg-slate-800/50 text-slate-300 border-slate-100 dark:border-slate-700 cursor-not-allowed hidden'
-                      : 'bg-slate-50 dark:bg-slate-800/50 text-slate-400 hover:text-rose-600 hover:bg-rose-50 border-slate-200 dark:border-slate-700 hover:border-rose-200'
-                    }`}
-                    title={style.isDefault ? "Cannot delete active style" : "Delete Style"}
+                    type="button"
+                    onClick={() => handleDelete(sid)}
+                    className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-slate-400 transition-all hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:bg-rose-950/30"
+                    title="Delete Style"
                   >
                     <Trash2 size={18} />
                   </button>
                 </div>
               </motion.div>
-            ))}
+            );
+            })}
           </div>
         )}
       </motion.div>
