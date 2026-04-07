@@ -29,10 +29,8 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 7000;
 
-// Behind Render / other reverse proxies — required for correct client IPs and rate limiting
-if (process.env.NODE_ENV === 'production' || process.env.TRUST_PROXY === '1') {
-    app.set('trust proxy', 1);
-}
+// Trust the first hop (Render / Vercel / any reverse proxy) for correct client IPs and rate limiting
+app.set('trust proxy', 1);
 
 // Origin whitelist for CORS (FRONTEND_URL, CLIENT_URL, or comma-separated FRONTEND_URLS)
 const rawOriginEnv = [
