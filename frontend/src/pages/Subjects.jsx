@@ -160,10 +160,10 @@ const Subjects = () => {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-md bg-white/95 backdrop-blur-3xl rounded-[2.5rem] p-8 shadow-2xl border border-white border-opacity-50"
+              className="relative w-full max-w-md bg-white/95 dark:bg-slate-900 backdrop-blur-3xl rounded-[2.5rem] p-8 shadow-2xl border border-white dark:border-slate-700 border-opacity-50"
             >
               <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 bg-blue-50 rounded-xl text-blue-600">
+                <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-xl text-blue-600 dark:text-blue-400">
                   <BookOpen size={24} />
                 </div>
                 <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Add Subject</h2>
