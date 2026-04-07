@@ -161,6 +161,23 @@ app.get('/api/test-ai-key', async (req, res) => {
     }
 });
 
+// Pinging the server to keep it awake
+// Endpoint to ping
+app.get('/ping', (req, res) => {
+    res.status(200).send('Pong!');
+});
+
+// Function to ping the server every 5 minutes
+function pingServer() {
+    const url = `${process.env.BACKEND_URL}/ping` || `http://localhost:${PORT}/ping`;
+    axios.get(url)
+        .then(() => console.log('Pinged server at', new Date().toLocaleString()))
+        .catch(err => console.error('Error pinging server:', err.message));
+}
+
+// Ping every 10 minutes (600,000 milliseconds)
+setInterval(pingServer, 600000);
+
 
 // Multer error handling (file type / size rejections)
 app.use((err, req, res, next) => {
