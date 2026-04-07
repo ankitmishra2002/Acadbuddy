@@ -313,7 +313,7 @@ const Landing = () => {
               exit={{ height: 0, opacity: 0 }}
               className="md:hidden bg-gray-100/95 dark:bg-[#0c1020]/95 backdrop-blur-xl border-t border-gray-200 dark:border-white/[0.06] px-5 py-5 flex flex-col gap-4"
             >
-              {['Features', 'How it Works', 'Community', 'Pricing'].map((item) => (
+              {['Features', 'How it Works', 'Community', ].map((item) => (
                 <a key={item} href={`#${item.toLowerCase().replace(/ /g, '-')}`} className="text-gray-700 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white text-sm font-medium" onClick={() => setMenuOpen(false)}>
                   {item}
                 </a>

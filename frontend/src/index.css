@@ -73,3 +73,43 @@ code {
   transform: translateZ(0);
   backface-visibility: hidden;
 }
+
+/* Improved dark mode styles for better text visibility */
+.dark body {
+  @apply bg-slate-950 text-slate-50;
+}
+
+/* Ensure high contrast for AnswerStyle and other components */
+.dark .answer-style {
+  @apply text-slate-200 bg-slate-800 border border-slate-700;
+}
+
+.dark .text-primary {
+  @apply text-blue-400;
+}
+
+.dark .text-secondary {
+  @apply text-slate-400;
+}
+
+/* Add dark mode styles for PPT content */
+.dark .ppt-slide {
+  @apply bg-slate-900 text-slate-100 border border-slate-700 shadow-lg;
+}
+
+.dark .ppt-slide h1, .dark .ppt-slide h2, .dark .ppt-slide h3 {
+  @apply text-slate-50;
+}
+
+.dark .ppt-slide p {
+  @apply text-slate-300;
+}
+
+.dark .ppt-slide .speaker-notes {
+  @apply text-slate-400 italic;
+}
+
+/* Ensure buttons are visible in dark mode */
+.dark .ppt-slide button {
+  @apply bg-blue-600 text-white hover:bg-blue-700;
+}

@@ -131,10 +131,10 @@ const ContentView = () => {
       <Layout>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
-            <p className="text-red-600 mb-4">{error || 'Content not found'}</p>
+            <p className="text-red-600 dark:text-red-400 mb-4">{error || 'Content not found'}</p>
             <Link
               to="/"
-              className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700"
+              className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
             >
               <ArrowLeft size={20} />
               Back to Dashboard
@@ -153,46 +153,46 @@ const ContentView = () => {
 
   return (
     <Layout>
-      <div className="max-w-5xl mx-auto px-4 py-6">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 md:py-8">
         {/* Header */}
         <div className="mb-6">
           <Link
             to={subjectBackPath}
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4"
+            className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 mb-4"
           >
             <ArrowLeft size={20} />
             Back to Subject
           </Link>
           
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-4 sm:p-6">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
                 {getTypeIcon(content.type)}
                 <div>
-                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                  <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-1 rounded">
                     {getTypeLabel(content.type)}
                   </span>
-                  <h1 className="text-3xl font-bold text-gray-800 mt-2">{content.title}</h1>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white mt-2">{content.title}</h1>
                 </div>
               </div>
             </div>
             
-            <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
+            <div className="flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-300 mb-6">
               <div>
-                <span className="font-medium">Subject:</span> {content.subjectId?.name || 'Unknown'}
+                <span className="font-medium text-gray-900 dark:text-gray-100">Subject:</span> {content.subjectId?.name || 'Unknown'}
               </div>
               <div>
-                <span className="font-medium">Topic:</span> {content.topic}
+                <span className="font-medium text-gray-900 dark:text-gray-100">Topic:</span> {content.topic}
               </div>
               <div>
-                <span className="font-medium">Created:</span> {new Date(content.createdAt).toLocaleDateString()}
+                <span className="font-medium text-gray-900 dark:text-gray-100">Created:</span> {new Date(content.createdAt).toLocaleDateString()}
               </div>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               <button
                 onClick={() => downloadAsMarkdown(content.content, content.title)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
+                className="w-full sm:w-auto inline-flex justify-center items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
               >
                 <Download size={18} />
                 Download Report
@@ -203,14 +203,14 @@ const ContentView = () => {
                   subjectReturnTab: location.state?.subjectReturnTab,
                   subjectId: subjectIdForLink
                 }}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="w-full sm:w-auto inline-flex justify-center items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 <Eye size={18} />
                 Open in Focus Mode
               </Link>
               <button
                 onClick={handleShareToCommunity}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                className="w-full sm:w-auto inline-flex justify-center items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
               >
                 <Share2 size={18} />
                 Share to Community
@@ -220,21 +220,21 @@ const ContentView = () => {
         </div>
 
         {/* Content Display */}
-        <div className="bg-white rounded-lg shadow-sm p-8">
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-4 sm:p-8">
           {content.type === 'smart_study' && content.content?.mode === 'summarize' && content.content?.summary ? (
-            <div className="prose max-w-none">
+            <div className="prose dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">
               <ReactMarkdown>{content.content.summary}</ReactMarkdown>
             </div>
           ) : content.type === 'smart_study' && content.content?.mode === 'keywords' ? (
             <div className="space-y-6">
               {content.content.keywords?.length > 0 && (
                 <div>
-                  <h3 className="text-lg font-bold text-gray-800 mb-3">Keywords</h3>
+                  <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-3">Keywords</h3>
                   <div className="flex flex-wrap gap-2">
                     {content.content.keywords.map((kw, i) => (
                       <span
                         key={`${i}-${kw}`}
-                        className="inline-flex rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-sm text-indigo-900"
+                        className="inline-flex rounded-full border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1 text-sm text-indigo-900 dark:text-indigo-200"
                       >
                         {kw}
                       </span>
@@ -244,8 +244,8 @@ const ContentView = () => {
               )}
               {content.content.excerpt && (
                 <div>
-                  <h3 className="text-lg font-bold text-gray-800 mb-3">Excerpt</h3>
-                  <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{content.content.excerpt}</p>
+                  <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-3">Excerpt</h3>
+                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{content.content.excerpt}</p>
                 </div>
               )}
             </div>
@@ -290,11 +290,11 @@ const ContentView = () => {
               })}
             </div>
           ) : content.content?.sections ? (
-            <div className="prose max-w-none">
+            <div className="prose dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">
               {content.content.sections.map((section, index) => (
                 <div key={index} className="mb-8">
-                  <h2 className="text-2xl font-bold text-gray-800 mb-4">{section.title}</h2>
-                  <div className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                  <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">{section.title}</h2>
+                  <div className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
                     {section.content}
                   </div>
                 </div>
@@ -303,15 +303,15 @@ const ContentView = () => {
           ) : content.content?.questions ? (
             <div className="space-y-6">
               {content.content.questions.map((question, index) => (
-                <div key={index} className="border-l-4 border-blue-500 pl-6 py-4">
+                <div key={index} className="border-l-4 border-blue-500 pl-4 sm:pl-6 py-4">
                   <div className="flex items-start gap-3 mb-4">
-                    <span className="text-xl font-bold text-blue-600">Q{index + 1}.</span>
-                    <p className="text-lg text-gray-800 flex-1">{question.question}</p>
+                    <span className="text-xl font-bold text-blue-600 dark:text-blue-400">Q{index + 1}.</span>
+                    <p className="text-lg text-gray-800 dark:text-gray-200 flex-1">{question.question}</p>
                   </div>
                   {question.answer && (
-                    <div className="ml-8 mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                      <p className="text-sm font-medium text-gray-600 mb-2">Answer:</p>
-                      <p className="text-gray-700 whitespace-pre-wrap">{question.answer}</p>
+                    <div className="ml-4 sm:ml-8 mt-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Answer:</p>
+                      <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{question.answer}</p>
                     </div>
                   )}
                 </div>
@@ -320,14 +320,14 @@ const ContentView = () => {
           ) : content.content?.units ? (
             <div className="space-y-6">
               {content.content.units.map((unit, index) => (
-                <div key={index} className="border-l-4 border-green-500 pl-6 py-4">
-                  <h3 className="text-xl font-bold text-gray-800 mb-3">{unit.name}</h3>
+                <div key={index} className="border-l-4 border-green-500 pl-4 sm:pl-6 py-4">
+                  <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-3">{unit.name}</h3>
                   {unit.topics && (
-                    <ul className="space-y-2 text-gray-700">
+                    <ul className="space-y-2 text-gray-700 dark:text-gray-300">
                       {unit.topics.map((topic, topicIndex) => (
                         <li key={topicIndex} className="flex items-start">
-                          <span className="mr-2 text-green-600">•</span>
-                          <span>{topic}</span>
+                           <span className="mr-2 text-green-600 dark:text-green-400">•</span>
+                           <span>{topic}</span>
                         </li>
                       ))}
                     </ul>
@@ -342,11 +342,11 @@ const ContentView = () => {
             <div className="space-y-6">
               {content.content.keyPoints && content.content.keyPoints.length > 0 && (
                 <div>
-                  <h3 className="text-xl font-bold text-gray-800 mb-3">Key Points</h3>
-                  <ul className="space-y-2 text-gray-700">
+                  <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-3">Key Points</h3>
+                  <ul className="space-y-2 text-gray-700 dark:text-gray-300">
                     {content.content.keyPoints.map((point, index) => (
                       <li key={index} className="flex items-start">
-                        <span className="mr-2 text-orange-600">•</span>
+                        <span className="mr-2 text-orange-600 dark:text-orange-400">•</span>
                         <span>{point}</span>
                       </li>
                     ))}
@@ -355,11 +355,11 @@ const ContentView = () => {
               )}
               {content.content.formulae && content.content.formulae.length > 0 && (
                 <div>
-                  <h3 className="text-xl font-bold text-gray-800 mb-3">Formulae</h3>
-                  <ul className="space-y-2 text-gray-700">
+                  <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-3">Formulae</h3>
+                  <ul className="space-y-2 text-gray-700 dark:text-gray-300">
                     {content.content.formulae.map((formula, index) => (
                       <li key={index} className="flex items-start">
-                        <span className="mr-2 text-blue-600">•</span>
+                        <span className="mr-2 text-blue-600 dark:text-blue-400">•</span>
                         <span>{formula}</span>
                       </li>
                     ))}
@@ -368,11 +368,11 @@ const ContentView = () => {
               )}
               {content.content.definitions && content.content.definitions.length > 0 && (
                 <div>
-                  <h3 className="text-xl font-bold text-gray-800 mb-3">Definitions</h3>
-                  <ul className="space-y-2 text-gray-700">
+                  <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-3">Definitions</h3>
+                  <ul className="space-y-2 text-gray-700 dark:text-gray-300">
                     {content.content.definitions.map((definition, index) => (
                       <li key={index} className="flex items-start">
-                        <span className="mr-2 text-green-600">•</span>
+                        <span className="mr-2 text-green-600 dark:text-green-400">•</span>
                         <span>{definition}</span>
                       </li>
                     ))}
@@ -381,13 +381,13 @@ const ContentView = () => {
               )}
               {content.content.reviewQuestions && content.content.reviewQuestions.length > 0 && (
                 <div>
-                  <h3 className="text-xl font-bold text-gray-800 mb-3">Review questions</h3>
+                  <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-3">Review questions</h3>
                   <div className="space-y-4">
                     {content.content.reviewQuestions.map((rq, index) => (
-                      <div key={index} className="border border-amber-200 rounded-lg p-4 bg-amber-50/50">
-                        <p className="font-medium text-gray-900">{index + 1}. {rq.question}</p>
+                      <div key={index} className="border border-amber-200 dark:border-amber-900/50 rounded-lg p-4 bg-amber-50/50 dark:bg-amber-900/20">
+                        <p className="font-medium text-gray-900 dark:text-gray-100">{index + 1}. {rq.question}</p>
                         {rq.answer && (
-                          <p className="mt-2 text-sm text-gray-700 whitespace-pre-wrap">{rq.answer}</p>
+                          <p className="mt-2 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{rq.answer}</p>
                         )}
                       </div>
                     ))}
@@ -396,8 +396,8 @@ const ContentView = () => {
               )}
             </div>
           ) : (
-            <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-              <pre className="whitespace-pre-wrap text-sm text-gray-700">
+            <div className="bg-gray-50 dark:bg-gray-900 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+              <pre className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">
                 {JSON.stringify(content.content, null, 2)}
               </pre>
             </div>

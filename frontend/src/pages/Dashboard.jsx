@@ -491,7 +491,7 @@ const Dashboard = () => {
             </Link>
           </div>
 
-          {recentContent.length > 0 ? (
+          {Array.isArray(recentContent) && recentContent.length > 0 ? (
             <ul className="space-y-2">
               {recentContent.map((content) => (
                 <li key={content._id}>
@@ -518,17 +518,7 @@ const Dashboard = () => {
               ))}
             </ul>
           ) : (
-            <div className="flex flex-col items-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 py-12 text-center dark:border-slate-700 dark:bg-slate-800/30">
-              <FileText className="mb-3 text-slate-300 dark:text-slate-600" size={36} />
-              <p className="font-medium text-slate-600 dark:text-slate-400">No generated content yet</p>
-              <p className="mt-1 max-w-xs text-xs text-slate-500">Open a subject and use Notes, Report, or PPT to create your first item.</p>
-              <Link
-                to="/subjects"
-                className="mt-4 text-sm font-bold text-blue-600 hover:underline dark:text-blue-400"
-              >
-                Go to subjects
-              </Link>
-            </div>
+            <p className="text-sm text-slate-500 dark:text-slate-400">No recent content available.</p>
           )}
         </motion.div>
 

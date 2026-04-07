@@ -89,7 +89,7 @@ const Subjects = () => {
         </button>
       </motion.div>
 
-      {subjects.length === 0 ? (
+      {Array.isArray(subjects) && subjects.length === 0 ? (
         <motion.div variants={itemVariants} className="flex flex-col items-center justify-center py-16 px-4 bg-slate-50 dark:bg-slate-800/50 border-2 border-dashed border-slate-200 rounded-[2rem] text-center">
           <div className="w-20 h-20 bg-blue-50 text-blue-300 rounded-full flex items-center justify-center mb-6 shadow-inner">
             <BookOpen size={40} />
@@ -106,7 +106,7 @@ const Subjects = () => {
         </motion.div>
       ) : (
         <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {subjects.map((subject) => (
+          {Array.isArray(subjects) && subjects.map((subject) => (
             <motion.div 
               variants={itemVariants}
               key={subject._id} 
